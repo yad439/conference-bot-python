@@ -1,0 +1,20 @@
+name: Lint and test
+on: [push]
+
+jobs:
+  lint:
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+    - run: pip install -r requirements.txt
+    - run: pip install mypy flake8
+    - uses: actions/cache@v4
+      with:
+        path: .mypy_cache
+        key: ${{ runner.os }}-mypy-${{ hashFiles('**/requirements.txt') }}
+    - run: |
+        mypy .
+        flake8 --extend-ignore=E501
