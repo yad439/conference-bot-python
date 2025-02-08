@@ -13,8 +13,8 @@ import database.setup
 
 async def main():
     logging.basicConfig(level=logging.DEBUG)
-    TOKEN = os.getenv('TELEGRAM_TOKEN')
-    if TOKEN is None:
+    token = os.getenv('TELEGRAM_TOKEN')
+    if token is None:
         logging.critical('Token environment variable not found')
         return
     new_database = not Path('db.sqlite').exists()
@@ -24,7 +24,7 @@ async def main():
         await database.setup.create_tables(engine)
         await database.mock_data.fill_tables(session_maker)
     speech_repository = SpeechRepository(session_maker)
-    bot = Bot(TOKEN)
+    bot = Bot(token)
     dispatcher = Dispatcher(speech_repository=speech_repository)
     dispatcher.include_router(handlers.general.get_router())
     logging.info('Starting polling')
