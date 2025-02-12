@@ -5,10 +5,10 @@ import os
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-import database.mock_data
-from database.repository import SpeechRepository
+import data.mock_data
+from data.repository import SpeechRepository
 import handlers.general
-import database.setup
+import data.setup
 
 
 async def main():
@@ -21,8 +21,8 @@ async def main():
     engine = create_async_engine('sqlite+aiosqlite:///db.sqlite')
     session_maker = async_sessionmaker(engine)
     if new_database:
-        await database.setup.create_tables(engine)
-        await database.mock_data.fill_tables(session_maker)
+        await data.setup.create_tables(engine)
+        await data.mock_data.fill_tables(session_maker)
     speech_repository = SpeechRepository(session_maker)
     bot = Bot(token)
     dispatcher = Dispatcher(speech_repository=speech_repository)

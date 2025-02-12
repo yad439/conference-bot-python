@@ -5,7 +5,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
 from aiogram.utils import keyboard
 
-from database.repository import SpeechRepository
+from data.repository import SpeechRepository
 
 
 async def handle_start(message: Message):
