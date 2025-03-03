@@ -14,8 +14,10 @@ jobs:
     - run: pip install mypy flake8 pylint
     - uses: actions/cache@v4
       with:
-        path: .mypy_cache
-        key: ${{ runner.os }}-mypy-${{ hashFiles('**/requirements.txt') }}
+        path: |
+          .mypy_cache
+          .pytest_cache
+        key: ${{ runner.os }}-cache-${{ hashFiles('**/requirements.txt') }}
     - run: |
         mypy .
         flake8 --extend-ignore=E501
