@@ -6,8 +6,9 @@ import os
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 import data.mock_data
-from data.repository import SpeechRepository
+from data.repository import Repository
 import handlers.general
+import handlers.personal
 import data.setup
 
 
@@ -23,10 +24,11 @@ async def main():
     if new_database:
         await data.setup.create_tables(engine)
         await data.mock_data.fill_tables(session_maker)
-    speech_repository = SpeechRepository(session_maker)
+    speech_repository = Repository(session_maker)
     bot = Bot(token)
-    dispatcher = Dispatcher(speech_repository=speech_repository)
+    dispatcher = Dispatcher(repository=speech_repository)
     dispatcher.include_router(handlers.general.get_router())
+    handlers.personal.init(dispatcher)
     logging.info('Starting polling')
     await dispatcher.start_polling(bot)  # type: ignore
 

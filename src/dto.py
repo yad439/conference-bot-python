@@ -4,6 +4,7 @@ import datetime
 
 @dataclass
 class TimeSlotDto:
+    id: int | None
     date: datetime.date
     start_time: datetime.time
     end_time: datetime.time
@@ -11,6 +12,7 @@ class TimeSlotDto:
 
 @dataclass
 class SpeechDto:
+    id: int | None
     title: str
     speaker: str
     time_slot: TimeSlotDto
