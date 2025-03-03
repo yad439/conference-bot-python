@@ -19,3 +19,4 @@ jobs:
     - run: |
         mypy .
         flake8 --extend-ignore=E501
+    - run: pytest

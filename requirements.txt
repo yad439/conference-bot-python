@@ -2,3 +2,4 @@ aiogram
 sqlalchemy
 aiosqlite
 py-automapper
+pytest
