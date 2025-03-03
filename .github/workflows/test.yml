@@ -11,7 +11,7 @@ jobs:
         python-version: '3.13'
         cache: 'pip'
     - run: pip install -r requirements.txt
-    - run: pip install mypy flake8
+    - run: pip install mypy flake8 pylint
     - uses: actions/cache@v4
       with:
         path: .mypy_cache
@@ -19,4 +19,5 @@ jobs:
     - run: |
         mypy .
         flake8 --extend-ignore=E501
+        pylint src --disable=C0114,C0115,C0116 --max-line-length=120
     - run: pytest

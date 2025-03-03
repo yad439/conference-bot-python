@@ -1,19 +1,19 @@
 import datetime
-from io import StringIO
 import itertools
+import logging
+from io import StringIO
 from aiogram.fsm.scene import Scene, SceneRegistry, on
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram import F, Router
-import logging
 
 from data.repository import Repository
 from dto import SpeechDto
 from view import timetable
 
 
-class Intention:
+class Intention:  # pylint: disable=too-few-public-methods
     ALL = 'Все'
     DAY = 'День'
     SINGLE = 'Одну запись'
@@ -99,7 +99,7 @@ class SelectSingleScene(Scene, state='selectSingle'):
         await message.answer(result.getvalue())
 
     @on.message(F.text)
-    async def on_message(self, message: Message, state: FSMContext, repository: Repository):
+    async def on_message(self, message: Message, state: FSMContext):
         slot_mapping: list[int] | None = await state.get_value('slot_mapping')
         assert slot_mapping is not None
         try:

@@ -2,6 +2,8 @@ import datetime
 from sqlalchemy import BigInteger, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+# pylint: disable=too-few-public-methods
+
 
 class Base(DeclarativeBase):
     pass
