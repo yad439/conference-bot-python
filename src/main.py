@@ -1,6 +1,5 @@
 import os
 import logging
-from pathlib import Path
 from aiogram import Bot, Dispatcher
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -18,12 +17,12 @@ async def main():
     if token is None:
         logging.critical('Token environment variable not found')
         return
-    new_database = not Path('db.sqlite').exists()
-    engine = create_async_engine('sqlite+aiosqlite:///db.sqlite')
+    # new_database = not Path('db.sqlite').exists()
+    engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(engine)
-    if new_database:
-        await data.setup.create_tables(engine)
-        await data.mock_data.fill_tables(session_maker)
+    # if new_database:
+    await data.setup.create_tables(engine)
+    await data.mock_data.fill_tables(session_maker)
     speech_repository = Repository(session_maker)
     bot = Bot(token)
     dispatcher = Dispatcher(repository=speech_repository)

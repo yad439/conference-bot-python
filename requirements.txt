@@ -3,3 +3,4 @@ sqlalchemy
 aiosqlite
 py-automapper
 pytest
+pytest-asyncio
