@@ -68,6 +68,9 @@ class SelectDayScene(Scene, state='selectDay'):
             text = message.text
             assert text is not None
             value = int(text)
+            if value < 1:
+                await message.answer('Выберете из доступных дней')
+                return
             days: list[datetime.date] | None = await state.get_value('days')
             assert days is not None
             date: datetime.date = days[value-1]
@@ -106,6 +109,9 @@ class SelectSingleScene(Scene, state='selectSingle'):
             text = message.text
             assert text is not None
             value = int(text)
+            if value < 0:
+                await message.answer('Выберете из доступных вариантов')
+                return
             time_slot_id = slot_mapping[value]
             await self.wizard.goto(EditingScene, slots=[time_slot_id])
         except (ValueError, IndexError):
@@ -121,7 +127,7 @@ class EditingScene(Scene, state='editing'):
             await message.answer('Готово', reply_markup=ReplyKeyboardRemove())
             await self.wizard.exit()
             return
-        slot, options = await repository.get_in_time_slot(slots[-1])
+        slot, options = await repository.get_in_time_slot(slots[0])
         slot_string = timetable.make_slot_string(slot, with_day=True)
         answer = slot_string+'\n' + 'Возможные варианты:\n' + \
             '\n'.join(timetable.make_entry_string(it, timetable.EntryFormat.PLACE_ONLY)
@@ -139,8 +145,8 @@ class EditingScene(Scene, state='editing'):
         assert slots is not None
         user = message.from_user
         assert user is not None
-        await repository.save_selection(user.id, slots[-1], None)
-        slots.pop()
+        await repository.save_selection(user.id, slots[0], None)
+        slots.pop(0)
         await self.wizard.retake(slots=slots)
 
     @on.message(F.text)
@@ -154,7 +160,7 @@ class EditingScene(Scene, state='editing'):
         options: list[SpeechDto] = data['options']
         slots: list[int] = data['slots']
         self._logger.debug(
-            'Selected location "%s" for slot %d', location, slots[-1])
+            'Selected location "%s" for slot %d', location, slots[0])
         for option in options:
             if location == option.location:
                 selection = option.id
@@ -165,8 +171,8 @@ class EditingScene(Scene, state='editing'):
             return
         user = message.from_user
         assert user is not None
-        await repository.save_selection(user.id, slots[-1], selection)
-        slots.pop()
+        await repository.save_selection(user.id, slots[0], selection)
+        slots.pop(0)
         await self.wizard.retake(slots=slots)
 
     @on.message()

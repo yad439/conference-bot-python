@@ -15,6 +15,9 @@ class Repository:
         self._mapper = automapper.mapper.to(SpeechDto)
         self._slot_mapper = automapper.mapper.to(TimeSlotDto)
 
+    def get_session(self):
+        return self._factory()
+
     async def get_all_speeches(self):
         statement = select(Speech).options(selectinload(Speech.time_slot))
         async with self._factory() as session:
@@ -59,10 +62,9 @@ class Repository:
     async def save_selection(self, user_id: int, slot_id: int, speech_id: int | None):
         delete_statement = delete(Selection).where(
             (Selection.attendee == user_id) & (Selection.time_slot_id == slot_id))
-        async with self._factory() as session:
+        async with self._factory() as session, session.begin():
             await session.execute(delete_statement)
             if speech_id is not None:
                 selection = Selection(
                     attendee=user_id, time_slot_id=slot_id, speech_id=speech_id)
                 session.add(selection)
-                await session.commit()
