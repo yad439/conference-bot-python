@@ -2,7 +2,6 @@ from collections import Counter
 from typing import Any
 import pytest
 from unittest.mock import AsyncMock
-
 import pytest_asyncio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -10,8 +9,8 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 import data.mock_data
 import data.setup
 from data.repository import Repository
-
 from data.tables import Selection
+
 from handlers import personal
 from handlers.personal import EditIntentionScene, EditingScene, SelectDayScene, SelectSingleScene
 
