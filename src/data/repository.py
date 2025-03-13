@@ -2,7 +2,7 @@ import datetime
 import automapper  # type: ignore
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import contains_eager
 
 from dto import SpeechDto, TimeSlotDto
 
@@ -19,10 +19,12 @@ class Repository:
         return self._factory()
 
     async def get_all_speeches(self):
-        statement = select(Speech).options(selectinload(Speech.time_slot))
+        statement = (select(Speech).join(Speech.time_slot)
+                     .order_by(TimeSlot.date, Speech.location, TimeSlot.start_time)
+                     .options(contains_eager(Speech.time_slot)))
         async with self._factory() as session:
-            result = await session.execute(statement)
-            return list(map(self._mapper.map, result.scalars()))
+            result = await session.scalars(statement)
+            return list(map(self._mapper.map, result))
 
     async def get_in_time_slot(self, time_slot_id: int):
         dummy_slot = TimeSlotDto(

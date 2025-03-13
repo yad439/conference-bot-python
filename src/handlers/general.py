@@ -1,3 +1,4 @@
+import itertools
 import logging
 import textwrap
 from aiogram import Router
@@ -22,9 +23,11 @@ async def handle_start(message: Message, state: FSMContext):
         '''), reply_markup=builder.as_markup())
 
 
-async def handle_list(message: Message, speech_repository: Repository):
-    speeches = await speech_repository.get_all_speeches()
-    await message.answer('\n'.join(timetable.make_entry_string(it) for it in speeches))
+async def handle_list(message: Message, repository: Repository):
+    speeches = await repository.get_all_speeches()
+    days = ((day, itertools.groupby(locations, lambda x: x.location))
+            for day, locations in itertools.groupby(speeches, lambda x: x.time_slot.date))
+    await message.answer(timetable.render_timetable(days))
 
 
 def get_router():
