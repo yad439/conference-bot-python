@@ -11,8 +11,8 @@ import data.setup
 from data.repository import Repository
 from data.tables import Selection
 
-from handlers import personal
-from handlers.personal import EditIntentionScene, EditingScene, SelectDayScene, SelectSingleScene
+from handlers import personal_edit
+from handlers.personal_edit import EditIntentionScene, EditingScene, SelectDayScene, SelectSingleScene
 
 
 class StateFake:
@@ -57,7 +57,7 @@ async def test_editing_intent_all(repository: Repository):
     wizard.goto.assert_called_once()
     args = wizard.goto.await_args.args
     kwargs = wizard.goto.await_args.kwargs
-    assert args[0] == personal.EditingScene
+    assert args[0] == personal_edit.EditingScene
     assert Counter(kwargs['slots']) == Counter(range(1, 4))
 
 
@@ -75,7 +75,7 @@ async def test_editing_intent_day(repository: Repository):
 
     wizard.goto.assert_called_once()
     args = wizard.goto.await_args.args
-    assert args[0] == personal.SelectDayScene
+    assert args[0] == personal_edit.SelectDayScene
 
 
 @pytest.mark.asyncio
@@ -92,7 +92,7 @@ async def test_editing_intent_single(repository: Repository):
 
     wizard.goto.assert_called_once()
     args = wizard.goto.await_args.args
-    assert args[0] == personal.SelectSingleScene
+    assert args[0] == personal_edit.SelectSingleScene
 
 
 @pytest.mark.asyncio
@@ -138,7 +138,7 @@ async def test_select_day(repository: Repository, state: StateFake, day: str, sl
     wizard.goto.assert_called_once()
     args = wizard.goto.await_args.args
     kwargs = wizard.goto.await_args.kwargs
-    assert args[0] == personal.EditingScene
+    assert args[0] == personal_edit.EditingScene
     assert kwargs['slots'] == slots
 
 
@@ -185,7 +185,7 @@ async def test_select_single(repository: Repository, state: StateFake):
     wizard.goto.assert_called_once()
     args = wizard.goto.await_args.args
     kwargs = wizard.goto.await_args.kwargs
-    assert args[0] == personal.EditingScene
+    assert args[0] == personal_edit.EditingScene
     assert kwargs['slots'] == [2]
 
 

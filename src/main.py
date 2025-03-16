@@ -8,7 +8,7 @@ import data.mock_data
 import data.setup
 from data.repository import Repository
 import handlers.general
-import handlers.personal
+import handlers.personal_edit
 
 
 async def main():
@@ -25,7 +25,7 @@ async def main():
     bot = Bot(token)
     dispatcher = Dispatcher(repository=speech_repository)
     dispatcher.include_router(handlers.general.get_router())
-    handlers.personal.init(dispatcher)
+    handlers.personal_edit.init(dispatcher)
     logging.info('Starting polling')
     await dispatcher.start_polling(bot)  # type: ignore
 

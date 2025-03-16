@@ -9,7 +9,7 @@ from aiogram.fsm.context import FSMContext
 
 from data.repository import Repository
 from view import timetable
-from .personal import EditIntentionScene
+from .personal_edit import EditIntentionScene
 
 
 async def handle_start(message: Message, state: FSMContext):
