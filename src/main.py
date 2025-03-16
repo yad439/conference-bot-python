@@ -17,10 +17,8 @@ async def main():
     if token is None:
         logging.critical('Token environment variable not found')
         return
-    # new_database = not Path('db.sqlite').exists()
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(engine)
-    # if new_database:
     await data.setup.create_tables(engine)
     await data.mock_data.fill_tables(session_maker)
     speech_repository = Repository(session_maker)
