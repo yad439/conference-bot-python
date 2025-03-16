@@ -11,7 +11,7 @@ jobs:
         python-version: '3.13'
         cache: 'pip'
     - run: pip install -r requirements.txt
-    - run: pip install mypy flake8 pylint
+    - run: pip install mypy flake8 pylint pytest-cov
     - uses: actions/cache@v4
       with:
         path: |
@@ -23,12 +23,6 @@ jobs:
         flake8 --extend-ignore=E501
         pylint src --disable=C0114,C0115,C0116 --max-line-length=120
     - run: pytest
-  sonarqube:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: SonarSource/sonarqube-scan-action@v5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    - uses: SonarSource/sonarqube-scan-action@v5
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
