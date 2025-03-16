@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import BigInteger, ForeignKey, UniqueConstraint
+from sqlalchemy import BigInteger, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 # pylint: disable=too-few-public-methods
@@ -29,9 +29,8 @@ class Speech(Base):
 
 class Selection(Base):
     __tablename__ = 'selections'
-    __table_args__ = (UniqueConstraint('attendee', 'time_slot_id'),)
-    id: Mapped[int] = mapped_column(primary_key=True)
-    attendee: Mapped[int] = mapped_column(BigInteger())
-    time_slot_id = mapped_column(ForeignKey('time_slots.id'))
+    attendee: Mapped[int] = mapped_column(BigInteger(), primary_key=True)
+    time_slot_id: Mapped[int] = mapped_column(
+        ForeignKey('time_slots.id'), primary_key=True)
     speech_id: Mapped[int] = mapped_column(ForeignKey('speeches.id'))
     speech: Mapped['Speech'] = relationship()
