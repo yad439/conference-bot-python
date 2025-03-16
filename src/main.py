@@ -9,6 +9,7 @@ import data.setup
 from data.repository import Repository
 import handlers.general
 import handlers.personal_edit
+import handlers.personal_view
 
 
 async def main():
@@ -25,6 +26,7 @@ async def main():
     bot = Bot(token)
     dispatcher = Dispatcher(repository=speech_repository)
     dispatcher.include_router(handlers.general.get_router())
+    dispatcher.include_router(handlers.personal_view.get_router())
     handlers.personal_edit.init(dispatcher)
     logging.info('Starting polling')
     await dispatcher.start_polling(bot)  # type: ignore

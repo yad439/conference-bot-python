@@ -20,6 +20,7 @@ async def handle_start(message: Message, state: FSMContext):
     Это бот, предоставляющий информацию о мероприятиях. Команды:
     /list - список всех мероприятий
     /configure - настройка персональной программы
+    /personal - ваша персональная программа
         '''), reply_markup=builder.as_markup())
 
 

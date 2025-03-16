@@ -48,3 +48,13 @@ def render_timetable(table: Iterable[tuple[datetime.date, Iterable[tuple['str', 
                 output.write('\n')
             output.write('\n')
     return output.getvalue()
+
+
+def render_personal(table: Iterable[tuple[datetime.date, Iterable[SpeechDto]]]):
+    output = StringIO()
+    for date, speeches in table:
+        output.write(f'{date:%d.%m}:\n')
+        for speech in speeches:
+            output.write(make_entry_string(speech, EntryFormat.WITH_PLACE))
+            output.write('\n')
+    return output.getvalue()
