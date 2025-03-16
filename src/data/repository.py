@@ -27,15 +27,13 @@ class Repository:
             return list(map(self._mapper.map, result))
 
     async def get_in_time_slot(self, time_slot_id: int):
-        dummy_slot = TimeSlotDto(
-            None, datetime.date.min, datetime.time(), datetime.time())
         slot_statement = select(TimeSlot).where(TimeSlot.id == time_slot_id)
         statement = select(Speech).where(Speech.time_slot_id == time_slot_id)
         async with self._factory() as session:
-            slot_result = await session.execute(slot_statement)
-            result = await session.execute(statement)
-            slot = self._slot_mapper.map(slot_result.scalar_one())
-            return slot, [self._mapper.map(it, fields_mapping={'time_slot': dummy_slot}) for it in result.scalars()]
+            slot_result = await session.scalars(slot_statement)
+            result = await session.scalars(statement)
+            slot = self._slot_mapper.map(slot_result.one())
+            return slot, [self._mapper.map(it, fields_mapping={'time_slot': slot}) for it in result]
 
     async def get_all_slots(self):
         statement = select(TimeSlot)
