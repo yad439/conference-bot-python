@@ -145,6 +145,7 @@ class EditingScene(Scene, state='editing'):
         assert slots is not None
         user = message.from_user
         assert user is not None
+        self._logger.debug('User %d selected nothing for slot %d', slots[0])
         await repository.save_selection(user.id, slots[0], None)
         slots.pop(0)
         await self.wizard.retake(slots=slots)
@@ -159,8 +160,10 @@ class EditingScene(Scene, state='editing'):
         data = await state.get_data()
         options: list[SpeechDto] = data['options']
         slots: list[int] = data['slots']
+        user = message.from_user
+        assert user is not None
         self._logger.debug(
-            'Selected location "%s" for slot %d', location, slots[0])
+            'User %d selected location "%s" for slot %d', user, location, slots[0])
         for option in options:
             if location == option.location:
                 selection = option.id
@@ -169,8 +172,6 @@ class EditingScene(Scene, state='editing'):
         else:
             await message.answer('Такой локации нет, повторите, пожалуйста')
             return
-        user = message.from_user
-        assert user is not None
         await repository.save_selection(user.id, slots[0], selection)
         slots.pop(0)
         await self.wizard.retake(slots=slots)

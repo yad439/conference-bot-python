@@ -1,4 +1,5 @@
 import datetime
+import logging
 import automapper  # type: ignore
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -14,6 +15,7 @@ class Repository:
         self._factory = factory
         self._mapper = automapper.mapper.to(SpeechDto)
         self._slot_mapper = automapper.mapper.to(TimeSlotDto)
+        self._logger = logging.getLogger(__name__)
 
     def get_session(self):
         return self._factory()
@@ -69,6 +71,8 @@ class Repository:
             return list(result.scalars().all())
 
     async def save_selection(self, user_id: int, slot_id: int, speech_id: int | None):
+        self._logger.info(
+            'Saving selection for user %d, slot %d, speech %d', user_id, slot_id, speech_id)
         delete_statement = delete(Selection).where(
             (Selection.attendee == user_id) & (Selection.time_slot_id == slot_id))
         async with self._factory() as session, session.begin():
