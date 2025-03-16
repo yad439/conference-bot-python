@@ -50,8 +50,7 @@ async def test_editing_intent_all(repository: Repository):
     message = AsyncMock()
     await scene.on_enter(message)
 
-    message = AsyncMock()
-    message.text = 'Все'
+    message = AsyncMock(text='Все')
     await scene.on_message(message, repository)
 
     wizard.goto.assert_called_once()
@@ -69,8 +68,7 @@ async def test_editing_intent_day(repository: Repository):
     message = AsyncMock()
     await scene.on_enter(message)
 
-    message = AsyncMock()
-    message.text = 'День'
+    message = AsyncMock(text='День')
     await scene.on_message(message, repository)
 
     wizard.goto.assert_called_once()
@@ -86,8 +84,7 @@ async def test_editing_intent_single(repository: Repository):
     message = AsyncMock()
     await scene.on_enter(message)
 
-    message = AsyncMock()
-    message.text = 'Одну запись'
+    message = AsyncMock(text='Одну запись')
     await scene.on_message(message, repository)
 
     wizard.goto.assert_called_once()
@@ -103,8 +100,7 @@ async def test_editing_intent_wrong(repository: Repository):
     message = AsyncMock()
     await scene.on_enter(message)
 
-    message = AsyncMock()
-    message.text = 'фжс'
+    message = AsyncMock(text='фжс')
     await scene.on_message(message, repository)
 
     message.answer.assert_called_once()
@@ -131,8 +127,7 @@ async def test_select_day(repository: Repository, state: StateFake, day: str, sl
     assert '01.06' in args[0]
     assert '02.06' in args[0]
 
-    message = AsyncMock()
-    message.text = day
+    message = AsyncMock(text=day)
     await scene.on_message(message, state, repository)
 
     wizard.goto.assert_called_once()
@@ -156,8 +151,7 @@ async def test_select_day_wrong(repository: Repository, state: StateFake, day: s
     assert '01.06' in args[0]
     assert '02.06' in args[0]
 
-    message = AsyncMock()
-    message.text = day
+    message = AsyncMock(text=day)
     await scene.on_message(message, state, repository)
 
     message.answer.assert_called_once()
@@ -178,8 +172,7 @@ async def test_select_single(repository: Repository, state: StateFake):
     for substring in ['01.06', '02.06', '09:00', '10:00', '11:00']:
         assert substring in args[0]
 
-    message = AsyncMock()
-    message.text = '1'
+    message = AsyncMock(text='1')
     await scene.on_message(message, state)
 
     wizard.goto.assert_called_once()
@@ -203,8 +196,7 @@ async def test_select_single_wrong(repository: Repository, state: StateFake, opt
     for substring in ['01.06', '02.06', '09:00', '10:00', '11:00']:
         assert substring in args[0]
 
-    message = AsyncMock()
-    message.text = option
+    message = AsyncMock(text=option)
     await scene.on_message(message, state)
 
     message.answer.assert_called_once()
@@ -225,8 +217,7 @@ async def test_edit_add(repository: Repository, state: StateFake):
     for substring in ['A', 'B', 'About something', 'Alternative point']:
         assert substring in args[0]
 
-    message = AsyncMock()
-    message.text = 'B'
+    message = AsyncMock(text='B')
     message.from_user.id = 42
     await scene.on_message(message, state, repository)
 
@@ -257,8 +248,7 @@ async def test_edit_replace(repository: Repository, state: StateFake):
     for substring in ['A', 'B', 'About something', 'Alternative point']:
         assert substring in args[0]
 
-    message = AsyncMock()
-    message.text = 'B'
+    message = AsyncMock(text='B')
     message.from_user.id = 42
     await scene.on_message(message, state, repository)
 
@@ -289,8 +279,7 @@ async def test_edit_remove(repository: Repository, state: StateFake):
     for substring in ['A', 'B', 'About something', 'Alternative point']:
         assert substring in args[0]
 
-    message = AsyncMock()
-    message.text = 'Ничего'
+    message = AsyncMock(text='Ничего')
     message.from_user.id = 42
     await scene.on_message(message, state, repository)
 
@@ -318,8 +307,7 @@ async def test_edit_wrong(repository: Repository, state: StateFake):
     for substring in ['A', 'B', 'About something', 'Alternative point']:
         assert substring in args[0]
 
-    message = AsyncMock()
-    message.text = 'C'
+    message = AsyncMock(text='C')
     message.from_user.id = 42
     await scene.on_message(message, state, repository)
 
