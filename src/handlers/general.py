@@ -9,7 +9,6 @@ from aiogram.fsm.context import FSMContext
 
 from data.repository import Repository
 from view import timetable
-from .personal_edit import EditIntentionScene
 
 
 async def handle_start(message: Message, state: FSMContext):
@@ -35,6 +34,5 @@ def get_router():
     router = Router()
     router.message(CommandStart())(handle_start)
     router.message(Command('list'))(handle_list)
-    router.message(Command('configure'))(EditIntentionScene.as_handler())
     logging.getLogger(__name__).info('General handlers registered')
     return router

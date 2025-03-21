@@ -4,6 +4,7 @@ import logging
 from io import StringIO
 from aiogram.fsm.scene import Scene, SceneRegistry, on
 from aiogram.fsm.context import FSMContext
+from aiogram.filters import Command
 from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram import F, Router
@@ -26,6 +27,7 @@ def init(router: Router):
     registry = SceneRegistry(router)
     registry.add(EditIntentionScene, SelectDayScene,
                  SelectSingleScene, EditingScene)
+    router.message(Command('configure'))(EditIntentionScene.as_handler())
 
 
 class EditIntentionScene(Scene, state='editIntention'):
