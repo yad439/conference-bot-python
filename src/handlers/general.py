@@ -20,6 +20,8 @@ async def handle_start(message: Message, state: FSMContext):
     /list - список всех мероприятий
     /configure - настройка персональной программы
     /personal - ваша персональная программа
+    /today - ваша персональная программа на сегодня
+    /tomorrow - ваша персональная программа на завтра
         '''), reply_markup=builder.as_markup())
 
 

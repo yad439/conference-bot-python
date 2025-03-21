@@ -37,11 +37,13 @@ class Repository:
             slot = self._slot_mapper.map(slot_result.one())
             return slot, [self._mapper.map(it, fields_mapping={'time_slot': slot}) for it in result]
 
-    async def get_selected_speeches(self, user_id: int):
+    async def get_selected_speeches(self, user_id: int, date: datetime.date | None = None):
         statement = (select(Speech)
                      .join(Selection).where(Selection.attendee == user_id)
                      .join(TimeSlot).order_by(TimeSlot.date, TimeSlot.start_time)
                      .options(contains_eager(Speech.time_slot)))
+        if date is not None:
+            statement = statement.where(TimeSlot.date == date)
         async with self._factory() as session:
             result = await session.scalars(statement)
             return list(map(self._mapper.map, result))

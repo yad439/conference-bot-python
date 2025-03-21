@@ -4,3 +4,4 @@ aiosqlite
 py-automapper
 pytest
 pytest-asyncio
+freezegun

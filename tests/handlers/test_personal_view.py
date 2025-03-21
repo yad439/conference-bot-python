@@ -1,7 +1,8 @@
 import pytest
-from unittest.mock import AsyncMock
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from unittest.mock import AsyncMock
+from freezegun import freeze_time
 
 import data.mock_data
 import data.setup
@@ -46,3 +47,42 @@ async def test_handle_personal_view_empty(repository: Repository):
     message.answer.assert_called_once()
     args = message.answer.await_args.args
     assert 'не выбрали' in args[0]
+
+
+@pytest.mark.asyncio
+@freeze_time('2025-06-01')
+async def test_handle_personal_view_today(repository: Repository):
+    message = AsyncMock(text='/today')
+    message.from_user.id = 42
+    await handle_personal_view(message, repository)
+    message.answer.assert_called_once()
+    args = message.answer.await_args.args
+    for substring in ('About something', 'About something else',
+                      'Dr. John Doe', 'Jane Doe', 'A',
+                      '01.06', '9:00', '10:00', '11:00'):
+        assert substring in args[0]
+    for substring in 'Alternative point', 'Alternative day 2', 'New day talk', 'Mr. Alternative', 'B', '02.06':
+        assert substring not in args[0]
+
+
+@pytest.mark.asyncio
+@freeze_time('2025-06-01')
+async def test_handle_personal_view_tomorrow(repository: Repository):
+    message = AsyncMock(text='/tomorrow')
+    message.from_user.id = 42
+    await handle_personal_view(message, repository)
+    message.answer.assert_called_once()
+    args = message.answer.await_args.args
+    for substring in 'Alternative day 2',  'Mr. Alternative', 'B', '02.06', '9:00', '10:00':
+        assert substring in args[0]
+    for substring in ('About something', 'About something else', 'Alternative point', 'New day talk', 'Dr. John Doe',
+                      'Jane Doe', 'A:', '01.06', '11:00'):
+        assert substring not in args[0]
+
+
+@pytest.mark.asyncio
+async def test_handle_personal_view_wrong(repository: Repository):
+    message = AsyncMock(text='/asdf')
+    message.from_user.id = 42
+    with pytest.raises(ValueError):
+        await handle_personal_view(message, repository)
