@@ -1,13 +1,13 @@
 import datetime
 import itertools
 import logging
-from io import StringIO
-from aiogram.fsm.scene import Scene, SceneRegistry, on
-from aiogram.fsm.context import FSMContext
+from aiogram import F, Router
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.scene import Scene, SceneRegistry, on
 from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
-from aiogram import F, Router
+from io import StringIO
 
 from data.repository import Repository
 from dto import SpeechDto
@@ -59,8 +59,8 @@ class SelectDayScene(Scene, state='selectDay'):
         day_strings = timetable.make_date_strings(days)
         keyboard = ReplyKeyboardBuilder()
         for i in range(len(days)):
-            keyboard.button(text=str(i+1))
-        answer = 'Возможные варианты:\n'+'\n'.join(day_strings)
+            keyboard.button(text=str(i + 1))
+        answer = 'Возможные варианты:\n' + '\n'.join(day_strings)
         await state.update_data(days=days)
         await message.answer(answer, reply_markup=keyboard.as_markup())
 
@@ -75,7 +75,7 @@ class SelectDayScene(Scene, state='selectDay'):
                 return
             days: list[datetime.date] | None = await state.get_value('days')
             assert days is not None
-            date: datetime.date = days[value-1]
+            date: datetime.date = days[value - 1]
             slots = await repository.get_slot_ids_on_day(date)
             await self.wizard.goto(EditingScene, slots=slots)
         except (ValueError, IndexError):
@@ -131,7 +131,7 @@ class EditingScene(Scene, state='editing'):
             return
         slot, options = await repository.get_in_time_slot(slots[0])
         slot_string = timetable.make_slot_string(slot, with_day=True)
-        answer = slot_string+'\n' + 'Возможные варианты:\n' + \
+        answer = slot_string + '\n' + 'Возможные варианты:\n' + \
             '\n'.join(timetable.make_entry_string(it, timetable.EntryFormat.PLACE_ONLY)
                       for it in options)
         keyboard = ReplyKeyboardBuilder()

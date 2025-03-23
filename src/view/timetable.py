@@ -2,6 +2,7 @@ import datetime
 from collections.abc import Iterable  # pylint: disable=import-error
 from enum import Enum, auto
 from io import StringIO
+
 from dto import SpeechDto, TimeSlotDto
 
 ENTRY_FORMAT = '{start:%H:%M} - {end:%H:%M}: {title} ({speaker})'
@@ -28,7 +29,7 @@ def make_entry_string(speech: SpeechDto, format_type: EntryFormat = EntryFormat.
 
 
 def make_date_strings(dates: Iterable[datetime.date]):
-    return [f'День {i+1}: {date:%d.%m}' for i, date in enumerate(dates)]
+    return [f'День {i + 1}: {date:%d.%m}' for i, date in enumerate(dates)]
 
 
 def make_slot_string(slot: TimeSlotDto, with_day: bool = False):
@@ -37,11 +38,12 @@ def make_slot_string(slot: TimeSlotDto, with_day: bool = False):
     return f'{slot.start_time:%H:%M} - {slot.end_time:%H:%M}'
 
 
-def render_timetable(table: Iterable[tuple[datetime.date, Iterable[tuple['str', Iterable[SpeechDto]]]]], with_day_counter: bool = True):
+def render_timetable(
+        table: Iterable[tuple[datetime.date, Iterable[tuple['str', Iterable[SpeechDto]]]]], with_day_counter: bool = True):
     output = StringIO()
     for day, (date, locations) in enumerate(table):
         if with_day_counter:
-            output.write(f'День {day+1} ({date:%d.%m}):\n')
+            output.write(f'День {day + 1} ({date:%d.%m}):\n')
         else:
             output.write(f'{date:%d.%m}:\n')
         for location, speeches in locations:

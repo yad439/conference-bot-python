@@ -6,7 +6,6 @@ from aiogram.types import CallbackQuery, InaccessibleMessage, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from view import timetable
-
 from data.repository import Repository
 
 
