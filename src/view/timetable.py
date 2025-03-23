@@ -37,10 +37,13 @@ def make_slot_string(slot: TimeSlotDto, with_day: bool = False):
     return f'{slot.start_time:%H:%M} - {slot.end_time:%H:%M}'
 
 
-def render_timetable(table: Iterable[tuple[datetime.date, Iterable[tuple['str', Iterable[SpeechDto]]]]]):
+def render_timetable(table: Iterable[tuple[datetime.date, Iterable[tuple['str', Iterable[SpeechDto]]]]], with_day_counter: bool = True):
     output = StringIO()
     for day, (date, locations) in enumerate(table):
-        output.write(f'День {day+1} ({date:%d.%m}):\n')
+        if with_day_counter:
+            output.write(f'День {day+1} ({date:%d.%m}):\n')
+        else:
+            output.write(f'{date:%d.%m}:\n')
         for location, speeches in locations:
             output.write(f'{location}:\n')
             for speech in speeches:

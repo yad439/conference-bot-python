@@ -20,10 +20,12 @@ class Repository:
     def get_session(self):
         return self._factory()
 
-    async def get_all_speeches(self):
+    async def get_all_speeches(self, date: datetime.date | None = None):
         statement = (select(Speech).join(Speech.time_slot)
                      .order_by(TimeSlot.date, Speech.location, TimeSlot.start_time)
                      .options(contains_eager(Speech.time_slot)))
+        if date is not None:
+            statement = statement.where(TimeSlot.date == date)
         async with self._factory() as session:
             result = await session.scalars(statement)
             return list(map(self._mapper.map, result))
