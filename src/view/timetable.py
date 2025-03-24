@@ -39,7 +39,8 @@ def make_slot_string(slot: TimeSlotDto, with_day: bool = False):
 
 
 def render_timetable(
-        table: Iterable[tuple[datetime.date, Iterable[tuple['str', Iterable[SpeechDto]]]]], with_day_counter: bool = True):
+        table: Iterable[tuple[datetime.date, Iterable[tuple['str', Iterable[SpeechDto]]]]],
+        with_day_counter: bool = True):
     output = StringIO()
     for day, (date, locations) in enumerate(table):
         if with_day_counter:

@@ -3,6 +3,7 @@ import logging
 
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
 from .tables import Speech, TimeSlot
 
 

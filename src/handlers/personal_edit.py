@@ -1,13 +1,14 @@
 import datetime
 import itertools
 import logging
+from io import StringIO
+
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.scene import Scene, SceneRegistry, on
 from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
-from io import StringIO
 
 from data.repository import Repository
 from dto import SpeechDto

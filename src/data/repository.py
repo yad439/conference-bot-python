@@ -1,5 +1,6 @@
 import datetime
 import logging
+
 import automapper  # type: ignore
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker

@@ -12,7 +12,8 @@
 			"extensions": [
 				"ms-python.python",
 				"streetsidesoftware.code-spell-checker-russian",
-				"SonarSource.sonarlint-vscode"
+				"SonarSource.sonarlint-vscode",
+				"ms-python.isort"
 			]
 		}
 	}

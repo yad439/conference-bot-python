@@ -1,12 +1,13 @@
 import datetime
 import itertools
+
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, InaccessibleMessage, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from view import timetable
 from data.repository import Repository
+from view import timetable
 
 
 async def handle_personal_view(message: Message):

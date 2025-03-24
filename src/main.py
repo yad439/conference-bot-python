@@ -1,15 +1,15 @@
-import os
 import logging
-from aiogram import Bot, Dispatcher
+import os
 
+from aiogram import Bot, Dispatcher
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 import data.mock_data
 import data.setup
-from data.repository import Repository
 import handlers.general
 import handlers.personal_edit
 import handlers.personal_view
+from data.repository import Repository
 
 
 async def main():

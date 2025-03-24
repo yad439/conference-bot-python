@@ -1,15 +1,17 @@
-from aiogram.types import Chat, InaccessibleMessage
+from unittest.mock import AsyncMock
+
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from unittest.mock import AsyncMock
+from aiogram.types import Chat, InaccessibleMessage
 from freezegun import freeze_time
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 import data.mock_data
 import data.setup
 from data.repository import Repository
 from data.tables import Selection
-from handlers.personal_view import handle_personal_view, handle_personal_view_selection
+from handlers.personal_view import (handle_personal_view,
+                                    handle_personal_view_selection)
 
 
 @pytest_asyncio.fixture  # type: ignore

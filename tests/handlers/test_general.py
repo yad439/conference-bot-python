@@ -1,14 +1,14 @@
+from unittest.mock import AsyncMock
+
+import pytest
+import pytest_asyncio
 from aiogram.types import Chat, InaccessibleMessage
 from freezegun import freeze_time
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from unittest.mock import AsyncMock
-import pytest
-import pytest_asyncio
 
 import data.mock_data
 import data.setup
 from data.repository import Repository
-
 from handlers import general
 
 

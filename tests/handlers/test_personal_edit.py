@@ -1,7 +1,8 @@
 from collections import Counter
 from typing import Any
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
 import pytest_asyncio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -10,9 +11,9 @@ import data.mock_data
 import data.setup
 from data.repository import Repository
 from data.tables import Selection
-
 from handlers import personal_edit
-from handlers.personal_edit import EditIntentionScene, EditingScene, SelectDayScene, SelectSingleScene
+from handlers.personal_edit import (EditingScene, EditIntentionScene,
+                                    SelectDayScene, SelectSingleScene)
 
 
 class StateFake:
