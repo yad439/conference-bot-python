@@ -4,7 +4,7 @@ import logging
 import automapper  # type: ignore
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from sqlalchemy.orm import contains_eager
+from sqlalchemy.orm import aliased, contains_eager
 
 from dto import SpeechDto, TimeSlotDto
 
@@ -86,3 +86,19 @@ class Repository:
                 selection = Selection(
                     attendee=user_id, time_slot_id=slot_id, speech_id=speech_id)
                 session.add(selection)
+
+    async def get_changing_users(self, current_slot_id: int, previous_slot_id: int):
+        current_speech = aliased(Speech)
+        previous_speech = aliased(Speech)
+        previous_selection = aliased(Selection)
+        query = (select(Selection.attendee)
+                 .where(Selection.time_slot_id == current_slot_id)
+                 .outerjoin(previous_selection,
+                            (Selection.attendee == previous_selection.attendee)
+                            & (previous_selection.time_slot_id == previous_slot_id))
+                 .join(current_speech, Selection.speech)
+                 .outerjoin(previous_speech, previous_selection.speech)
+                 .where(current_speech.location.is_distinct_from(previous_speech.location)))
+        async with self._factory() as session:
+            result = await session.scalars(query)
+            return result.all()
