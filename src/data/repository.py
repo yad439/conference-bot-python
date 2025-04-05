@@ -55,26 +55,26 @@ class Repository:
     async def get_all_slots(self):
         statement = select(TimeSlot).order_by(TimeSlot.date, TimeSlot.start_time)
         async with self._factory() as session:
-            result = await session.execute(statement)
-            return list(map(self._slot_mapper.map, result.scalars()))
+            result = await session.scalars(statement)
+            return list(map(self._slot_mapper.map, result))
 
     async def get_all_slot_ids(self):
         statement = select(TimeSlot.id)
         async with self._factory() as session:
-            result = await session.execute(statement)
-            return list(result.scalars().all())
+            result = await session.scalars(statement)
+            return result.all()
 
     async def get_slot_ids_on_day(self, date: datetime.date):
         statement = select(TimeSlot.id).where(TimeSlot.date == date)
         async with self._factory() as session:
-            result = await session.execute(statement)
-            return list(result.scalars().all())
+            result = await session.scalars(statement)
+            return result.all()
 
     async def get_all_dates(self):
         statement = select(TimeSlot.date).distinct()
         async with self._factory() as session:
-            result = await session.execute(statement)
-            return list(result.scalars().all())
+            result = await session.scalars(statement)
+            return result.all()
 
     async def save_selection(self, user_id: int, slot_id: int, speech_id: int | None):
         self._logger.info(

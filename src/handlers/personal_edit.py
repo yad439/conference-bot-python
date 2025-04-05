@@ -56,7 +56,6 @@ class SelectDayScene(Scene, state='selectDay'):
     @on.message.enter()
     async def on_enter(self, message: Message, state: FSMContext, repository: Repository):
         days = await repository.get_all_dates()
-        days.sort()
         day_strings = timetable.make_date_strings(days)
         keyboard = ReplyKeyboardBuilder()
         for i in range(len(days)):
@@ -87,16 +86,14 @@ class SelectSingleScene(Scene, state='selectSingle'):
     @on.message.enter()
     async def on_enter(self, message: Message, state: FSMContext, repository: Repository):
         slots = await repository.get_all_slots()
-        slots.sort(key=lambda slot: slot.date)
-        dates = sorted({slot.date for slot in slots})
+        dates = list(dict.fromkeys(slot.date for slot in slots))
         date_strings = timetable.make_date_strings(dates)
         slot_mapping: list[int] = []
         result = StringIO('Выберете номер слота:\n')
         for (_, day_slots), header in zip(itertools.groupby(slots, key=lambda slot: slot.date), date_strings):
             result.write(header)
             result.write(':\n')
-            sorted_slots = sorted(day_slots, key=lambda x: x.start_time)
-            for slot in sorted_slots:
+            for slot in day_slots:
                 assert slot.id is not None
                 result.write(
                     f'{len(slot_mapping)}: {timetable.make_slot_string(slot)}\n')
