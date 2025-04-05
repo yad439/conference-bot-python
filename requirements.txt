@@ -2,6 +2,7 @@ aiogram
 sqlalchemy
 aiosqlite
 py-automapper
+apscheduler
 pytest
 pytest-asyncio
 freezegun
