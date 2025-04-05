@@ -76,4 +76,5 @@ async def test_get_changing_users(session_maker: async_sessionmaker[AsyncSession
 
     result = await repository.get_changing_users(2, 1)
 
-    assert Counter(result) == Counter((42, 43))
+    assert Counter(map(lambda x: x.attendee, result)) == Counter((42, 43))
+    assert tuple(map(lambda x: x.speech.id, result)) == (2, 2)

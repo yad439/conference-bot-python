@@ -4,9 +4,9 @@ import logging
 import automapper  # type: ignore
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from sqlalchemy.orm import aliased, contains_eager
+from sqlalchemy.orm import aliased, contains_eager, selectinload
 
-from dto import SpeechDto, TimeSlotDto
+from dto import SelectionDto, SpeechDto, TimeSlotDto
 
 from .tables import Selection, Speech, TimeSlot
 
@@ -16,6 +16,7 @@ class Repository:
         self._factory = factory
         self._mapper = automapper.mapper.to(SpeechDto)
         self._slot_mapper = automapper.mapper.to(TimeSlotDto)
+        self._selection_mapper = automapper.mapper.to(SelectionDto)
         self._logger = logging.getLogger(__name__)
 
     def get_session(self):
@@ -52,7 +53,7 @@ class Repository:
             return list(map(self._mapper.map, result))
 
     async def get_all_slots(self):
-        statement = select(TimeSlot)
+        statement = select(TimeSlot).order_by(TimeSlot.date, TimeSlot.start_time)
         async with self._factory() as session:
             result = await session.execute(statement)
             return list(map(self._slot_mapper.map, result.scalars()))
@@ -87,18 +88,26 @@ class Repository:
                     attendee=user_id, time_slot_id=slot_id, speech_id=speech_id)
                 session.add(selection)
 
+    async def get_users_that_selected(self, slot_id: int):
+        query = select(Selection).where(Selection.time_slot_id == slot_id).options(selectinload(Selection.speech))
+        dummy_slot = TimeSlotDto(0, datetime.date(1, 1, 1), datetime.time(), datetime.time())
+        async with self._factory() as session:
+            result = await session.scalars(query)
+            return [self._selection_mapper.map(row, fields_mapping={'speech.time_slot': dummy_slot}) for row in result]
+
     async def get_changing_users(self, current_slot_id: int, previous_slot_id: int):
-        current_speech = aliased(Speech)
         previous_speech = aliased(Speech)
         previous_selection = aliased(Selection)
-        query = (select(Selection.attendee)
+        query = (select(Selection)
                  .where(Selection.time_slot_id == current_slot_id)
                  .outerjoin(previous_selection,
                             (Selection.attendee == previous_selection.attendee)
                             & (previous_selection.time_slot_id == previous_slot_id))
-                 .join(current_speech, Selection.speech)
+                 .join(Speech, Selection.speech)
                  .outerjoin(previous_speech, previous_selection.speech)
-                 .where(current_speech.location.is_distinct_from(previous_speech.location)))
+                 .where(Speech.location.is_distinct_from(previous_speech.location))
+                 .options(contains_eager(Selection.speech)))
+        dummy_slot = TimeSlotDto(0, datetime.date(1, 1, 1), datetime.time(), datetime.time())
         async with self._factory() as session:
             result = await session.scalars(query)
-            return result.all()
+            return [self._selection_mapper.map(row, fields_mapping={'speech.time_slot': dummy_slot}) for row in result]

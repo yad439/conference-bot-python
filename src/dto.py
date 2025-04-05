@@ -17,3 +17,9 @@ class SpeechDto:
     speaker: str
     time_slot: TimeSlotDto
     location: str
+
+
+@dataclass
+class SelectionDto:
+    attendee: int
+    speech: SpeechDto
