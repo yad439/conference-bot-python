@@ -2,7 +2,7 @@ import logging
 import os
 
 from aiogram import Bot, Dispatcher
-from apscheduler.schedulers.asyncio import AsyncIOScheduler  # pyright: ignore[reportMissingTypeStubs]
+from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 import data.mock_data
