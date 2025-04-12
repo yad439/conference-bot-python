@@ -7,7 +7,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.scene import Scene, SceneRegistry, on
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message, ReplyKeyboardRemove, User
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 from data.repository import Repository
@@ -31,15 +31,25 @@ def init(router: Router):
     router.message(Command('configure'))(EditIntentionScene.as_handler())
 
 
+def _format_user(user: User | None):
+    if user is None:
+        return 'Unknown'
+    return f'{user.first_name} {user.last_name} ({user.id})'
+
+
 class EditIntentionScene(Scene, state='editIntention'):
+    _logger = logging.getLogger(__name__)
+
     @on.message.enter()
     async def on_enter(self, message: Message):
+        self._logger.debug('User %s started editing personal schedule', _format_user(message.from_user))
         keyboard = ReplyKeyboardBuilder().button(text=Intention.ALL).button(
             text=Intention.DAY).button(text=Intention.SINGLE)
         await message.answer('Какие записи вы хотите отредактировать?', reply_markup=keyboard.as_markup())
 
     @on.message(F.text)
     async def on_message(self, message: Message, repository: Repository):
+        self._logger.debug('User %s selected to edit %s', _format_user(message.from_user), message.text)
         match message.text:
             case Intention.ALL:
                 slots = await repository.get_all_slot_ids()
@@ -53,8 +63,11 @@ class EditIntentionScene(Scene, state='editIntention'):
 
 
 class SelectDayScene(Scene, state='selectDay'):
+    _logger = logging.getLogger(__name__)
+
     @on.message.enter()
     async def on_enter(self, message: Message, state: FSMContext, repository: Repository):
+        self._logger.debug('User %s started selecting day', _format_user(message.from_user))
         days = await repository.get_all_dates()
         day_strings = timetable.make_date_strings(days)
         keyboard = ReplyKeyboardBuilder()
@@ -66,6 +79,7 @@ class SelectDayScene(Scene, state='selectDay'):
 
     @on.message(F.text)
     async def on_message(self, message: Message, state: FSMContext, repository: Repository):
+        self._logger.debug('User %s selected day %s', _format_user(message.from_user), message.text)
         try:
             text = message.text
             assert text is not None
@@ -79,12 +93,16 @@ class SelectDayScene(Scene, state='selectDay'):
             slots = await repository.get_slot_ids_on_day(date)
             await self.wizard.goto(EditingScene, slots=slots)
         except (ValueError, IndexError):
+            self._logger.warning('User %s selected invalid day %s', _format_user(message.from_user), message.text)
             await message.answer('Выберете из доступных дней')
 
 
 class SelectSingleScene(Scene, state='selectSingle'):
+    _logger = logging.getLogger(__name__)
+
     @on.message.enter()
     async def on_enter(self, message: Message, state: FSMContext, repository: Repository):
+        self._logger.debug('User %s started selecting single slot', _format_user(message.from_user))
         slots = await repository.get_all_slots()
         dates = list(dict.fromkeys(slot.date for slot in slots))
         date_strings = timetable.make_date_strings(dates)
@@ -103,6 +121,7 @@ class SelectSingleScene(Scene, state='selectSingle'):
 
     @on.message(F.text)
     async def on_message(self, message: Message, state: FSMContext):
+        self._logger.debug('User %s selected single slot %s', _format_user(message.from_user), message.text)
         slot_mapping: list[int] | None = await state.get_value('slot_mapping')
         assert slot_mapping is not None
         try:
@@ -115,6 +134,7 @@ class SelectSingleScene(Scene, state='selectSingle'):
             time_slot_id = slot_mapping[value]
             await self.wizard.goto(EditingScene, slots=[time_slot_id])
         except (ValueError, IndexError):
+            self._logger.warning('User %s selected invalid slot %s', _format_user(message.from_user), message.text)
             await message.answer('Выберете из доступных вариантов')
 
 
@@ -123,6 +143,7 @@ class EditingScene(Scene, state='editing'):
 
     @on.message.enter()
     async def on_enter(self, message: Message, state: FSMContext, repository: Repository, slots: list[int]):
+        self._logger.debug('User %s editing schedule: slots remaining %s', _format_user(message.from_user), slots)
         if not slots:
             await message.answer('Готово', reply_markup=ReplyKeyboardRemove())
             await self.wizard.exit()

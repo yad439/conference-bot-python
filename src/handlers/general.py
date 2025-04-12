@@ -14,6 +14,7 @@ from view import timetable
 
 
 async def handle_start(message: Message, state: FSMContext):
+    logging.getLogger(__name__).debug('User %s started interacting with the bot', message.from_user)
     builder = ReplyKeyboardBuilder().button(
         text='/list').button(text='/configure')
     await state.clear()
@@ -47,7 +48,9 @@ async def handle_schedule_selection(callback: CallbackQuery, repository: Reposit
         case 'show_general_tomorrow':
             date = datetime.date.today() + datetime.timedelta(days=1)
         case _:
-            raise ValueError('Unknown command')
+            logging.getLogger(__name__).error('Received unknown general command %s', query)
+            await callback.answer('Что-то пошло не так')
+            return
     speeches = await repository.get_all_speeches(date)
     days = ((day, itertools.groupby(locations, lambda x: x.location))
             for day, locations in itertools.groupby(speeches, lambda x: x.time_slot.date))

@@ -10,8 +10,7 @@ import data.mock_data
 import data.setup
 from data.repository import Repository
 from data.tables import Selection
-from handlers.personal_view import (handle_personal_view,
-                                    handle_personal_view_selection)
+from handlers.personal_view import handle_personal_view, handle_personal_view_selection
 
 
 @pytest_asyncio.fixture  # type: ignore
@@ -89,7 +88,7 @@ async def test_handle_personal_view_tomorrow(repository: Repository):
     callback.answer.assert_called_once()
     callback.message.answer.assert_called_once()
     args = callback.message.answer.await_args.args
-    for substring in 'Alternative day 2',  'Mr. Alternative', 'B', '02.06', '9:00', '10:00':
+    for substring in 'Alternative day 2', 'Mr. Alternative', 'B', '02.06', '9:00', '10:00':
         assert substring in args[0]
     for substring in ('About something', 'About something else', 'Alternative point', 'New day talk', 'Dr. John Doe',
                       'Jane Doe', 'A:', '01.06', '11:00'):
@@ -109,8 +108,9 @@ async def test_handle_personal_view_inaccessible(repository: Repository):
 
 
 @pytest.mark.asyncio
-async def test_handle_personal_view_wrong(repository: Repository):
+async def test_handle_personal_view_wrong(repository: Repository, caplog: pytest.LogCaptureFixture):
     callback = AsyncMock(data='asdf')
     callback.from_user.id = 42
-    with pytest.raises(ValueError):
-        await handle_personal_view_selection(callback, repository)
+    await handle_personal_view_selection(callback, repository)
+    assert 'Received unknown personal command asdf' in caplog.text
+    callback.answer.assert_awaited_once_with('Что-то пошло не так')

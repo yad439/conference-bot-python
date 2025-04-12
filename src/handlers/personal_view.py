@@ -1,5 +1,6 @@
 import datetime
 import itertools
+import logging
 
 from aiogram import F, Router
 from aiogram.filters import Command
@@ -32,7 +33,9 @@ async def handle_personal_view_selection(callback: CallbackQuery, repository: Re
         case 'show_personal_tomorrow':
             date = datetime.date.today() + datetime.timedelta(days=1)
         case _:
-            raise ValueError('Unknown command')
+            logging.getLogger(__name__).error('Received unknown personal command %s', query)
+            await callback.answer('Что-то пошло не так')
+            return
     speeches = await repository.get_selected_speeches(callback.from_user.id, date)
     await callback.answer()
     if not speeches:

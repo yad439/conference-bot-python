@@ -101,7 +101,8 @@ async def test_handle_personal_view_inaccessible(repository: Repository):
 
 
 @pytest.mark.asyncio
-async def test_handle_personal_view_wrong(repository: Repository):
+async def test_handle_personal_view_wrong(repository: Repository, caplog: pytest.LogCaptureFixture):
     callback = AsyncMock(data='asdf')
-    with pytest.raises(ValueError):
-        await general.handle_schedule_selection(callback, repository)
+    await general.handle_schedule_selection(callback, repository)
+    assert 'Received unknown general command asdf' in caplog.text
+    callback.answer.assert_awaited_once_with('Что-то пошло не так')
