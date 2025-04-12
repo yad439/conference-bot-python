@@ -37,9 +37,9 @@ async def test_notify_first(repository: Repository):
     await event_start.notify_first(bot, repository, 1, 5)
 
     args = (
-        call(41, 'Через 5 минут начинается доклад About something (A)'),
-        call(42, 'Через 5 минут начинается доклад Alternative point (B)'),
-        call(44, 'Через 5 минут начинается доклад About something (A)'),
+        call(41, 'Через 5 минут начинается доклад "About something" (A)'),
+        call(42, 'Через 5 минут начинается доклад "Alternative point" (B)'),
+        call(44, 'Через 5 минут начинается доклад "About something" (A)'),
     )
     bot.send_message.assert_has_awaits(args, any_order=True)
 
@@ -51,8 +51,8 @@ async def test_notify_change_location(repository: Repository):
     await event_start.notify_change_location(bot, repository, 2, 1, 5)
 
     args = (
-        call(42, 'Через 5 минут начинается доклад About something else (A)'),
-        call(43, 'Через 5 минут начинается доклад About something else (A)'),
+        call(42, 'Через 5 минут начинается доклад "About something else" (A)'),
+        call(43, 'Через 5 минут начинается доклад "About something else" (A)'),
     )
     bot.send_message.assert_has_awaits(args, any_order=True)
 
@@ -79,9 +79,9 @@ async def test_configure(repository: Repository):
                 await semaphore.acquire()
 
         args = (
-            call(41, 'Через 5 минут начинается доклад About something (A)'),
-            call(42, 'Через 5 минут начинается доклад Alternative point (B)'),
-            call(44, 'Через 5 минут начинается доклад About something (A)'),
+            call(41, 'Через 5 минут начинается доклад "About something" (A)'),
+            call(42, 'Через 5 минут начинается доклад "Alternative point" (B)'),
+            call(44, 'Через 5 минут начинается доклад "About something" (A)'),
         )
         bot.send_message.assert_has_awaits(args, any_order=True)
         bot.send_message.reset_mock()
@@ -92,7 +92,7 @@ async def test_configure(repository: Repository):
                 await semaphore.acquire()
 
         args2 = (
-            call(42, 'Через 5 минут начинается доклад About something else (A)'),
-            call(43, 'Через 5 минут начинается доклад About something else (A)'),
+            call(42, 'Через 5 минут начинается доклад "About something else" (A)'),
+            call(43, 'Через 5 минут начинается доклад "About something else" (A)'),
         )
         bot.send_message.assert_has_awaits(args2, any_order=True)
