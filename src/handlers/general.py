@@ -15,14 +15,18 @@ from view import timetable
 
 async def handle_start(message: Message, state: FSMContext):
     logging.getLogger(__name__).debug('User %s started interacting with the bot', message.from_user)
-    builder = ReplyKeyboardBuilder().button(
-        text='/list').button(text='/configure')
+    builder = (ReplyKeyboardBuilder()
+               .button(text='/schedule')
+               .button(text='/configure')
+               .button(text='/personal')
+               .button(text='/settings'))
     await state.clear()
     await message.answer(textwrap.dedent('''
     Это бот, предоставляющий информацию о мероприятиях. Команды:
     /schedule - список всех мероприятий
     /configure - настройка персональной программы
     /personal - ваша персональная программа
+    /settings - настройки уведомлений
         '''), reply_markup=builder.as_markup())
 
 

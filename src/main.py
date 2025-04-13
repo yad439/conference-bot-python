@@ -10,6 +10,7 @@ import data.setup
 import handlers.general
 import handlers.personal_edit
 import handlers.personal_view
+import handlers.settings
 from data.repository import Repository
 from notifications import event_start
 
@@ -30,6 +31,7 @@ async def main():
     dispatcher = Dispatcher(repository=repository)
     dispatcher.include_router(handlers.general.get_router())
     dispatcher.include_router(handlers.personal_view.get_router())
+    dispatcher.include_router(handlers.settings.get_router())
     handlers.personal_edit.init(dispatcher)
 
     scheduler = AsyncIOScheduler()
