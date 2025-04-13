@@ -2,13 +2,13 @@ import datetime
 import logging
 
 import automapper  # type: ignore
-from sqlalchemy import delete, select
+from sqlalchemy import delete, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import aliased, contains_eager, selectinload
 
 from dto import SelectionDto, SpeechDto, TimeSlotDto
 
-from .tables import Selection, Speech, TimeSlot
+from .tables import Selection, Settings, Speech, TimeSlot
 
 
 class Repository:
@@ -89,7 +89,10 @@ class Repository:
                 session.add(selection)
 
     async def get_users_that_selected(self, slot_id: int):
-        query = select(Selection).where(Selection.time_slot_id == slot_id).options(selectinload(Selection.speech))
+        query = (select(Selection).where(Selection.time_slot_id == slot_id)
+                 .outerjoin(Settings, Selection.attendee == Settings.user_id)
+                 .where(Settings.notifications_enabled.is_distinct_from(False))
+                 .options(selectinload(Selection.speech)))
         dummy_slot = TimeSlotDto(0, datetime.date(1, 1, 1), datetime.time(), datetime.time())
         async with self._factory() as session:
             result = await session.scalars(query)
@@ -100,6 +103,8 @@ class Repository:
         previous_selection = aliased(Selection)
         query = (select(Selection)
                  .where(Selection.time_slot_id == current_slot_id)
+                 .outerjoin(Settings, Selection.attendee == Settings.user_id)
+                 .where(Settings.notifications_enabled.is_distinct_from(False))
                  .outerjoin(previous_selection,
                             (Selection.attendee == previous_selection.attendee)
                             & (previous_selection.time_slot_id == previous_slot_id))
@@ -111,3 +116,17 @@ class Repository:
         async with self._factory() as session:
             result = await session.scalars(query)
             return [self._selection_mapper.map(row, fields_mapping={'speech.time_slot': dummy_slot}) for row in result]
+
+    async def get_notification_setting(self, user_id: int):
+        statement = select(Settings.notifications_enabled).where(Settings.user_id == user_id)
+        async with self._factory() as session:
+            return await session.scalar(statement)
+
+    async def save_notification_setting(self, user_id: int, enabled: bool):
+        self._logger.info('Saving notification setting for user %d, enabled %s', user_id, enabled)
+        update_query = update(Settings).where(Settings.user_id == user_id).values(notifications_enabled=enabled)
+        insert_query = insert(Settings).values(user_id=user_id, notifications_enabled=enabled)
+        async with self._factory() as session, session.begin():
+            updated = await session.execute(update_query)
+            if updated.rowcount == 0:
+                await session.execute(insert_query)

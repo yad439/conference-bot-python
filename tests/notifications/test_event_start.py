@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 import data.mock_data
 import data.setup
 from data.repository import Repository
-from data.tables import Selection
+from data.tables import Selection, Settings
 from notifications import event_start
 
 
@@ -26,7 +26,13 @@ async def repository():
                          Selection(attendee=42, time_slot_id=1, speech_id=3),
                          Selection(attendee=42, time_slot_id=2, speech_id=2),
                          Selection(attendee=43, time_slot_id=2, speech_id=2),
-                         Selection(attendee=44, time_slot_id=1, speech_id=1)))
+                         Selection(attendee=44, time_slot_id=1, speech_id=1),
+                         Selection(attendee=45, time_slot_id=1, speech_id=3),
+                         Selection(attendee=46, time_slot_id=1, speech_id=3),
+                         Selection(attendee=45, time_slot_id=2, speech_id=2),
+                         Selection(attendee=46, time_slot_id=2, speech_id=2)))
+        session.add_all((Settings(user_id=45, notifications_enabled=True),
+                         Settings(user_id=46, notifications_enabled=False)))
     return Repository(session_maker)
 
 
@@ -40,8 +46,10 @@ async def test_notify_first(repository: Repository):
         call(41, 'Через 5 минут начинается доклад "About something" (A)'),
         call(42, 'Через 5 минут начинается доклад "Alternative point" (B)'),
         call(44, 'Через 5 минут начинается доклад "About something" (A)'),
+        call(45, 'Через 5 минут начинается доклад "Alternative point" (B)'),
     )
     bot.send_message.assert_has_awaits(args, any_order=True)
+    assert bot.send_message.await_count == 4
 
 
 @pytest.mark.asyncio
@@ -53,8 +61,10 @@ async def test_notify_change_location(repository: Repository):
     args = (
         call(42, 'Через 5 минут начинается доклад "About something else" (A)'),
         call(43, 'Через 5 минут начинается доклад "About something else" (A)'),
+        call(45, 'Через 5 минут начинается доклад "About something else" (A)'),
     )
     bot.send_message.assert_has_awaits(args, any_order=True)
+    assert bot.send_message.await_count == 3
 
 
 @pytest.mark.asyncio
@@ -82,8 +92,10 @@ async def test_configure(repository: Repository):
             call(41, 'Через 5 минут начинается доклад "About something" (A)'),
             call(42, 'Через 5 минут начинается доклад "Alternative point" (B)'),
             call(44, 'Через 5 минут начинается доклад "About something" (A)'),
+            call(45, 'Через 5 минут начинается доклад "Alternative point" (B)'),
         )
         bot.send_message.assert_has_awaits(args, any_order=True)
+        assert bot.send_message.await_count == 4
         bot.send_message.reset_mock()
 
         frozen_time.move_to('2025-06-01 09:55:00')
@@ -94,5 +106,7 @@ async def test_configure(repository: Repository):
         args2 = (
             call(42, 'Через 5 минут начинается доклад "About something else" (A)'),
             call(43, 'Через 5 минут начинается доклад "About something else" (A)'),
+            call(45, 'Через 5 минут начинается доклад "About something else" (A)'),
         )
         bot.send_message.assert_has_awaits(args2, any_order=True)
+        assert bot.send_message.await_count == 3

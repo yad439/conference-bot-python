@@ -35,3 +35,9 @@ class Selection(Base):
         ForeignKey('time_slots.id'), primary_key=True)
     speech_id: Mapped[int] = mapped_column(ForeignKey('speeches.id'))
     speech: Mapped['Speech'] = relationship()
+
+
+class Settings(Base):
+    __tablename__ = 'settings'
+    user_id: Mapped[int] = mapped_column(primary_key=True)
+    notifications_enabled: Mapped[bool] = mapped_column(nullable=True)
