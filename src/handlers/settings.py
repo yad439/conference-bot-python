@@ -16,10 +16,7 @@ async def handle_show_settings(message: Message, repository: Repository):
     if notifications is None:
         notifications = True
     answer = view.notifications.render_settings(notifications)
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text='Включить уведомления', callback_data='set_notifications_on'),
-        InlineKeyboardButton(text='Выключить уведомления', callback_data='set_notifications_off')]])
-    await message.answer(answer, reply_markup=keyboard)
+    await message.answer(answer, reply_markup=_build_settings_keyboard())
 
 
 async def handle_set_setting(callback: CallbackQuery, repository: Repository):
@@ -42,7 +39,13 @@ async def handle_set_setting(callback: CallbackQuery, repository: Repository):
             return
     message = callback.message
     if isinstance(message, Message):
-        await message.edit_text(view.notifications.render_settings(enabled))
+        await message.edit_text(view.notifications.render_settings(enabled), reply_markup=_build_settings_keyboard())
+
+
+def _build_settings_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text='Включить уведомления', callback_data='set_notifications_on'),
+        InlineKeyboardButton(text='Выключить уведомления', callback_data='set_notifications_off')]])
 
 
 def get_router():
