@@ -105,7 +105,7 @@ class SelectSingleScene(Scene, state='selectSingle'):
         slots = await repository.get_all_slots()
         slot_mapping: list[int] = []
         result = StringIO('Выберете номер слота:\n')
-        for (date, day_slots) in itertools.groupby(slots, key=lambda slot: slot.date):
+        for date, day_slots in itertools.groupby(slots, key=lambda slot: slot.date):
             result.write(timetable.make_date_string(date))
             result.write(':\n')
             for slot in day_slots:
