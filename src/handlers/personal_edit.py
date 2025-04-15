@@ -162,8 +162,7 @@ class EditingScene(Scene, state='editing'):
         assert slots is not None
         user = message.from_user
         assert user is not None
-        self._logger.debug(
-            'User %d selected nothing for slot %d', user, slots[0])
+        self._logger.debug('User %s selected nothing for slot %d', user, slots[0])
         await repository.save_selection(user.id, slots[0], None)
         slots.pop(0)
         await self.wizard.retake(slots=slots)
@@ -180,8 +179,7 @@ class EditingScene(Scene, state='editing'):
         slots: list[int] = data['slots']
         user = message.from_user
         assert user is not None
-        self._logger.debug(
-            'User %d selected location "%s" for slot %d', user, location, slots[0])
+        self._logger.debug('User %s selected location "%s" for slot %d', user, location, slots[0])
         for option in options:
             if location == option.location:
                 selection = option.id
