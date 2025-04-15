@@ -26,7 +26,7 @@ async def test_start():
     message = AsyncMock(text='/start')
     state_mock = AsyncMock()
     await general.handle_start(message, state_mock)
-    message.answer.assert_called_once()
+    message.answer.assert_awaited_once()
     args = message.answer.await_args.args
     assert '/configure' in args[0]
     assert '/schedule' in args[0]
@@ -37,7 +37,7 @@ async def test_start():
 async def test_handle_personal_view(repository: Repository):
     message = AsyncMock()
     await general.handle_schedule(message)
-    message.answer.assert_called_once()
+    message.answer.assert_awaited_once()
     args = message.answer.await_args.args
     assert 'Какую часть расписания' in args[0]
 
@@ -47,8 +47,9 @@ async def test_schedule_all(repository: Repository):
     callback = AsyncMock(data='show_general_all')
 
     await general.handle_schedule_selection(callback, repository)
-    callback.answer.assert_called_once()
-    callback.message.answer.assert_called_once()
+
+    callback.answer.assert_awaited_once()
+    callback.message.answer.assert_awaited_once()
     args = callback.message.answer.await_args.args
     for substring in ('About something', 'About something else', 'Alternative point', 'New day talk',
                       'Alternative day 2', 'Dr. John Doe', 'Jane Doe', 'Mr. Alternative', 'New speaker', 'A', 'B',
@@ -62,8 +63,9 @@ async def test_schedule_today(repository: Repository):
     callback = AsyncMock(data='show_general_today')
 
     await general.handle_schedule_selection(callback, repository)
-    callback.answer.assert_called_once()
-    callback.message.answer.assert_called_once()
+
+    callback.answer.assert_awaited_once()
+    callback.message.answer.assert_awaited_once()
     args = callback.message.answer.await_args.args
     for substring in ('About something', 'About something else', 'Alternative point', 'Dr. John Doe', 'Jane Doe',
                       'Mr. Alternative', 'A', 'B', '01.06', '9:00', '10:00', '11:00'):
@@ -78,8 +80,9 @@ async def test_schedule_tomorrow(repository: Repository):
     callback = AsyncMock(data='show_general_tomorrow')
 
     await general.handle_schedule_selection(callback, repository)
-    callback.answer.assert_called_once()
-    callback.message.answer.assert_called_once()
+
+    callback.answer.assert_awaited_once()
+    callback.message.answer.assert_awaited_once()
     args = callback.message.answer.await_args.args
     for substring in ('New day talk', 'Alternative day 2', 'Mr. Alternative', 'New speaker', 'A', 'B', '02.06', '9:00',
                       '10:00'):
@@ -90,12 +93,26 @@ async def test_schedule_tomorrow(repository: Repository):
 
 
 @pytest.mark.asyncio
+@freeze_time('2025-05-01')
+@pytest.mark.parametrize('query', ('show_general_today', 'show_general_tomorrow'))
+async def test_schedule_empty(repository: Repository, query: str):
+    callback = AsyncMock(data=query)
+
+    await general.handle_schedule_selection(callback, repository)
+
+    callback.answer.assert_awaited_once()
+    callback.message.answer.assert_awaited_once()
+    args = callback.message.answer.await_args.args
+    assert 'Ничего' in args[0]
+
+
+@pytest.mark.asyncio
 async def test_handle_personal_view_inaccessible(repository: Repository):
     callback = AsyncMock(data='show_personal_all')
     callback.message = InaccessibleMessage(
         chat=Chat(id=1, type=''), message_id=21)
     await general.handle_schedule_selection(callback, repository)
-    callback.answer.assert_called_once()
+    callback.answer.assert_awaited_once()
     args = callback.answer.await_args.args
     assert 'устарело' in args[0]
 

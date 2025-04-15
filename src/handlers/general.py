@@ -56,10 +56,13 @@ async def handle_schedule_selection(callback: CallbackQuery, repository: Reposit
             await callback.answer('Что-то пошло не так')
             return
     speeches = await repository.get_all_speeches(date)
-    days = ((day, itertools.groupby(locations, lambda x: x.location))
-            for day, locations in itertools.groupby(speeches, lambda x: x.time_slot.date))
     await callback.answer()
-    await message.answer(timetable.render_timetable(days, date is None))
+    if not speeches:
+        await message.answer('Ничего не найдено')
+    else:
+        days = ((day, itertools.groupby(locations, lambda x: x.location))
+                for day, locations in itertools.groupby(speeches, lambda x: x.time_slot.date))
+        await message.answer(timetable.render_timetable(days, date is None))
 
 
 def get_router():

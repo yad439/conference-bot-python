@@ -52,9 +52,12 @@ async def test_handle_personal_view_all(repository: Repository):
 
 
 @pytest.mark.asyncio
-async def test_handle_personal_view_empty(repository: Repository):
-    callback = AsyncMock(data='show_personal_all')
-    callback.from_user.id = 41
+@freeze_time('2025-05-01')
+@pytest.mark.parametrize('query,user', [('show_personal_all', 41),
+                         ('show_personal_today', 42), ('show_personal_tomorrow', 42)])
+async def test_handle_personal_view_empty(repository: Repository, query: str, user: int):
+    callback = AsyncMock(data=query)
+    callback.from_user.id = user
     await handle_personal_view_selection(callback, repository)
     callback.answer.assert_called_once()
     callback.message.answer.assert_called_once()
