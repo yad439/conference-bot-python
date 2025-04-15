@@ -24,12 +24,12 @@ async def handle_set_setting(callback: CallbackQuery, repository: Repository):
     query = callback.data
     match query:
         case 'set_notifications_on':
-            logger.info('User %s enabled notifications', callback.from_user.id)
+            logger.info('User %d enabled notifications', callback.from_user.id)
             await repository.save_notification_setting(callback.from_user.id, True)
             await callback.answer('Уведомления включены')
             enabled = True
         case 'set_notifications_off':
-            logger.info('User %s disabled notifications', callback.from_user.id)
+            logger.info('User %d disabled notifications', callback.from_user.id)
             await repository.save_notification_setting(callback.from_user.id, False)
             await callback.answer('Уведомления выключены')
             enabled = False
