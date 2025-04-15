@@ -69,11 +69,10 @@ class SelectDayScene(Scene, state='selectDay'):
     async def on_enter(self, message: Message, state: FSMContext, repository: Repository):
         self._logger.debug('User %s started selecting day', _format_user(message.from_user))
         days = await repository.get_all_dates()
-        day_strings = timetable.make_date_strings(days)
         keyboard = ReplyKeyboardBuilder()
         for i in range(len(days)):
             keyboard.button(text=str(i + 1))
-        answer = 'Возможные варианты:\n' + '\n'.join(day_strings)
+        answer = 'Возможные варианты:\n' + '\n'.join(map(timetable.make_date_string, days))
         await state.update_data(days=days)
         await message.answer(answer, reply_markup=keyboard.as_markup())
 
@@ -104,17 +103,14 @@ class SelectSingleScene(Scene, state='selectSingle'):
     async def on_enter(self, message: Message, state: FSMContext, repository: Repository):
         self._logger.debug('User %s started selecting single slot', _format_user(message.from_user))
         slots = await repository.get_all_slots()
-        dates = list(dict.fromkeys(slot.date for slot in slots))
-        date_strings = timetable.make_date_strings(dates)
         slot_mapping: list[int] = []
         result = StringIO('Выберете номер слота:\n')
-        for (_, day_slots), header in zip(itertools.groupby(slots, key=lambda slot: slot.date), date_strings):
-            result.write(header)
+        for (date, day_slots) in itertools.groupby(slots, key=lambda slot: slot.date):
+            result.write(timetable.make_date_string(date))
             result.write(':\n')
             for slot in day_slots:
                 assert slot.id is not None
-                result.write(
-                    f'{len(slot_mapping)}: {timetable.make_slot_string(slot)}\n')
+                result.write(f'{len(slot_mapping)}: {timetable.make_slot_string(slot)}\n')
                 slot_mapping.append(slot.id)
         await state.update_data(slot_mapping=slot_mapping)
         await message.answer(result.getvalue())

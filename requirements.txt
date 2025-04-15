@@ -1,4 +1,5 @@
 aiogram
+Babel
 sqlalchemy
 aiosqlite
 py-automapper
