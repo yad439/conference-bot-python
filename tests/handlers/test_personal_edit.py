@@ -1,9 +1,12 @@
+import datetime
 from collections import Counter
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 import pytest_asyncio
+from aiogram.types import Chat, Message, User
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -12,8 +15,7 @@ import data.setup
 from data.repository import Repository
 from data.tables import Selection
 from handlers import personal_edit
-from handlers.personal_edit import (EditingScene, EditIntentionScene,
-                                    SelectDayScene, SelectSingleScene)
+from handlers.personal_edit import EditingScene, EditIntentionScene, SelectDayScene, SelectSingleScene
 
 
 class StateFake:
@@ -41,6 +43,16 @@ async def repository():
 @pytest.fixture
 def state():
     return StateFake()
+
+
+@pytest.fixture
+def user():
+    return SimpleNamespace(id=42, first_name='Test', last_name='User', username='testuser')
+
+
+@pytest.fixture
+def message():
+    return Message(message_id=1, date=datetime.datetime(2025, 1, 1), chat=Chat(id=1, type='private')).as_(AsyncMock())
 
 
 @pytest.mark.asyncio
@@ -205,24 +217,45 @@ async def test_select_single_wrong(repository: Repository, state: StateFake, opt
     assert 'Выберете' in args[0]
 
 
-@pytest.mark.asyncio
-async def test_edit_add(repository: Repository, state: StateFake):
+async def _setup_edit(repository: Repository, state: StateFake, message: Message, query_enter: bool, exist: bool):
+    if exist:
+        async with repository.get_session() as session:
+            session.add(Selection(attendee=42, time_slot_id=1, speech_id=1))
+            await session.commit()
     wizard = AsyncMock()
     scene = EditingScene(wizard)
 
-    message = AsyncMock()
-    await scene.on_enter(message, state, repository, [1, 2])
+    if query_enter:
+        query = AsyncMock(from_user=user, message=message)
+        await scene.on_query_enter(query, state, repository, [1, 2])
+    else:
+        await scene.on_enter(message, state, repository, [1, 2])
 
-    message.answer.assert_called_once()
-    args = message.answer.await_args.args
+    message.bot.assert_awaited()  # type: ignore
+    text = message.bot.await_args.args[0].text  # type: ignore
     for substring in ['A', 'B', 'About something', 'Alternative point']:
-        assert substring in args[0]
+        assert substring in text
 
-    message = AsyncMock(text='B')
-    message.from_user.id = 42
-    await scene.on_message(message, state, repository)
+    return wizard, scene
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('query_reply', [False, True])
+@pytest.mark.parametrize('query_enter', [False, True])
+@pytest.mark.parametrize('exist', [False, True])
+async def test_edit(repository: Repository, state: StateFake, user: User, message: Message,
+                    query_reply: bool, query_enter: bool, exist: bool):
+    wizard, scene = await _setup_edit(repository, state, message, query_enter, exist)
+
+    if query_reply:
+        query = AsyncMock(from_user=user, data='select#1#3')
+        await scene.on_query(query, state, repository)
+    else:
+        message = AsyncMock(text='B', from_user=user)
+        await scene.on_message(message, state, repository)
 
     wizard.retake.assert_called_once()
+    wizard.retake.assert_awaited_once()
     kwargs = wizard.retake.await_args.kwargs
     assert kwargs['slots'] == [2]
     async with repository.get_session() as session:
@@ -234,57 +267,22 @@ async def test_edit_add(repository: Repository, state: StateFake):
 
 
 @pytest.mark.asyncio
-async def test_edit_replace(repository: Repository, state: StateFake):
-    async with repository.get_session() as session:
-        session.add(Selection(attendee=42, time_slot_id=1, speech_id=1))
-        await session.commit()
-    wizard = AsyncMock()
-    scene = EditingScene(wizard)
+@pytest.mark.parametrize('query_reply', [False, True])
+@pytest.mark.parametrize('query_enter', [False, True])
+@pytest.mark.parametrize('exist', [False, True])
+async def test_edit_remove(repository: Repository, state: StateFake, user: User, message: Message,
+                           query_reply: bool, query_enter: bool, exist: bool):
+    wizard, scene = await _setup_edit(repository, state, message, query_enter, exist)
 
-    message = AsyncMock()
-    await scene.on_enter(message, state, repository, [1, 2])
-
-    message.answer.assert_called_once()
-    args = message.answer.await_args.args
-    for substring in ['A', 'B', 'About something', 'Alternative point']:
-        assert substring in args[0]
-
-    message = AsyncMock(text='B')
-    message.from_user.id = 42
-    await scene.on_message(message, state, repository)
+    if query_reply:
+        query = AsyncMock(from_user=user, data='select#1#-1')
+        await scene.on_query(query, state, repository)
+    else:
+        message = AsyncMock(text='Ничего', from_user=user)
+        await scene.on_message(message, state, repository)
 
     wizard.retake.assert_called_once()
-    kwargs = wizard.retake.await_args.kwargs
-    assert kwargs['slots'] == [2]
-    async with repository.get_session() as session:
-        result = await session.scalars(select(Selection))
-        selection = result.one()
-        assert selection.attendee == 42
-        assert selection.time_slot_id == 1
-        assert selection.speech_id == 3
-
-
-@pytest.mark.asyncio
-async def test_edit_remove(repository: Repository, state: StateFake):
-    async with repository.get_session() as session:
-        session.add(Selection(attendee=42, time_slot_id=1, speech_id=1))
-        await session.commit()
-    wizard = AsyncMock()
-    scene = EditingScene(wizard)
-
-    message = AsyncMock()
-    await scene.on_enter(message, state, repository, [1, 2])
-
-    message.answer.assert_called_once()
-    args = message.answer.await_args.args
-    for substring in ['A', 'B', 'About something', 'Alternative point']:
-        assert substring in args[0]
-
-    message = AsyncMock(text='Ничего')
-    message.from_user.id = 42
-    await scene.on_message(message, state, repository)
-
-    wizard.retake.assert_called_once()
+    wizard.retake.assert_awaited_once()
     kwargs = wizard.retake.await_args.kwargs
     assert kwargs['slots'] == [2]
     async with repository.get_session() as session:
@@ -293,42 +291,68 @@ async def test_edit_remove(repository: Repository, state: StateFake):
 
 
 @pytest.mark.asyncio
-async def test_edit_wrong(repository: Repository, state: StateFake):
+@pytest.mark.parametrize('query_enter', [False, True])
+async def test_edit_other(repository: Repository, state: StateFake, user: User, message: Message,
+                          query_enter: bool):
+    wizard, scene = await _setup_edit(repository, state, message, query_enter, False)
+
+    query = AsyncMock(from_user=user, data='select#3#4')
+    await scene.on_query(query, state, repository)
+
+    wizard.retake.assert_not_called()
     async with repository.get_session() as session:
-        session.add(Selection(attendee=42, time_slot_id=1, speech_id=1))
-        await session.commit()
-    wizard = AsyncMock()
-    scene = EditingScene(wizard)
+        result = await session.scalars(select(Selection))
+        selection = result.one()
+        assert selection.attendee == 42
+        assert selection.time_slot_id == 3
+        assert selection.speech_id == 4
 
-    message = AsyncMock()
-    await scene.on_enter(message, state, repository, [1, 2])
 
-    message.answer.assert_called_once()
-    args = message.answer.await_args.args
-    for substring in ['A', 'B', 'About something', 'Alternative point']:
-        assert substring in args[0]
+@pytest.mark.asyncio
+@pytest.mark.parametrize('query_reply', [False, True])
+@pytest.mark.parametrize('query_enter', [False, True])
+@pytest.mark.parametrize('exist', [False, True])
+async def test_edit_wrong_message(repository: Repository, state: StateFake, user: User, message: Message,
+                                  query_reply: bool, query_enter: bool, exist: bool):
+    _, scene = await _setup_edit(repository, state, message, query_enter, exist)
 
-    message = AsyncMock(text='C')
-    message.from_user.id = 42
+    message = AsyncMock(text='C', from_user=user)
     await scene.on_message(message, state, repository)
 
-    message.answer.assert_called_once()
+    message.answer.assert_awaited_once()
     args = message.answer.await_args.args
     assert 'повторите' in args[0]
 
 
 @pytest.mark.asyncio
-async def test_edit_end(repository: Repository, state: StateFake):
-    async with repository.get_session() as session:
-        session.add(Selection(attendee=42, time_slot_id=1, speech_id=1))
-        await session.commit()
+@pytest.mark.skip(reason='Foreign key constraints are not enforced')
+@pytest.mark.parametrize('query_enter', [False, True])
+@pytest.mark.parametrize('exist', [False, True])
+async def test_edit_wrong_query(repository: Repository, state: StateFake, user: User, message: Message,
+                                query_enter: bool, exist: bool):
+    _, scene = await _setup_edit(repository, state, message, query_enter, exist)
+
+    query = AsyncMock(from_user=user, data='select#1#10')
+    await scene.on_query(query, state, repository)
+
+    query.answer.assert_awaited_once()
+    args = query.answer.await_args.args
+    assert 'не так' in args[0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('query_enter', [False, True])
+async def test_edit_end(repository: Repository, state: StateFake, user: User, message: Message, query_enter: bool):
     wizard = AsyncMock()
     scene = EditingScene(wizard)
 
-    message = AsyncMock()
-    await scene.on_enter(message, state, repository, [])
+    if query_enter:
+        query = AsyncMock(message=message, from_user=user, data='select#1#3')
+        await scene.on_query_enter(query, state, repository, [])
+    else:
+        await scene.on_enter(message, state, repository, [])
 
-    message.answer.assert_called_once()
-    args = message.answer.await_args.args
-    assert 'Готово' in args[0]
+    message.bot.assert_awaited_once()  # type: ignore
+    text = message.bot.await_args.args[0].text  # type: ignore
+    assert 'Готово' in text
     wizard.exit.assert_called_once()
