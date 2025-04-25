@@ -42,7 +42,8 @@ async def test_handle_settings(repository: Repository, user: int, expected: bool
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('user,option', [(41, True), (42, True), (43, True), (41, False), (42, False), (43, False)])
+@pytest.mark.parametrize('user', [41, 42, 43])
+@pytest.mark.parametrize('option', [True, False])
 async def test_handle_change_settings(repository: Repository, user: int, option: bool):
     callback = AsyncMock(data='set_notifications_on' if option else 'set_notifications_off')
     callback.from_user.id = user
@@ -57,3 +58,17 @@ async def test_handle_change_settings(repository: Repository, user: int, option:
         assert 'Уведомления включены' in args[0]
     else:
         assert 'Уведомления выключены' in args[0]
+
+
+@pytest.mark.asyncio
+async def test_handle_change_settings_unknown(repository: Repository):
+    callback = AsyncMock(data='set_notifications_schrodinger')
+    callback.from_user.id = 42
+    callback.message = Message(message_id=1, date=datetime.datetime(2025, 1, 1),
+                               chat=Chat(id=1, type='private')).as_(AsyncMock())
+
+    await settings.handle_set_setting(callback, repository)
+
+    callback.answer.assert_awaited_once()
+    args = callback.answer.await_args[0]
+    assert 'Неизвестная' in args[0]
