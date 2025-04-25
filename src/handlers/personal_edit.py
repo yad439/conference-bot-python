@@ -216,7 +216,7 @@ class EditingScene(Scene, state='editing'):
         assert query is not None
         data = query.split('#')
         slot = int(data[1])
-        selection = int(data[2])
+        selection: int | None = int(data[2])
         if selection == -1:
             selection = None
         user = callback.from_user
