@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
 
+from aiogram import Router
 import pytest
 import pytest_asyncio
 from aiogram.types import Chat, Message, User
@@ -53,6 +54,12 @@ def user():
 @pytest.fixture
 def message():
     return Message(message_id=1, date=datetime.datetime(2025, 1, 1), chat=Chat(id=1, type='private')).as_(AsyncMock())
+
+
+def test_router():
+    router = Router()
+    personal_edit.init(router)
+    assert router is not None
 
 
 @pytest.mark.asyncio

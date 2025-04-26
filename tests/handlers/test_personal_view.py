@@ -10,7 +10,7 @@ import data.mock_data
 import data.setup
 from data.repository import Repository
 from data.tables import Selection
-from handlers.personal_view import handle_personal_view, handle_personal_view_selection
+from handlers.personal_view import handle_personal_view, handle_personal_view_selection, get_router
 
 
 @pytest_asyncio.fixture  # type: ignore
@@ -24,6 +24,11 @@ async def repository():
                          Selection(attendee=42, time_slot_id=2, speech_id=2),
                          Selection(attendee=42, time_slot_id=3, speech_id=5)))
     return Repository(session_maker)
+
+
+def test_router():
+    router = get_router()
+    assert router is not None
 
 
 @pytest.mark.asyncio

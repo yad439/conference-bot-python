@@ -25,6 +25,11 @@ async def repository():
     return Repository(session_maker)
 
 
+def test_router():
+    router = settings.get_router()
+    assert router is not None
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize('user,expected', [(41, True), (42, False), (43, True)])
 async def test_handle_settings(repository: Repository, user: int, expected: bool):
