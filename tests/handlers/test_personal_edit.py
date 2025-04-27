@@ -4,9 +4,9 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
 
-from aiogram import Router
 import pytest
 import pytest_asyncio
+from aiogram import Router
 from aiogram.types import Chat, Message, User
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -224,11 +224,14 @@ async def test_select_single_wrong(repository: Repository, state: StateFake, opt
     assert 'Выберете' in args[0]
 
 
+async def _add_initial(repository: Repository):
+    async with repository.get_session() as session, session.begin():
+        session.add(Selection(attendee=42, time_slot_id=1, speech_id=1))
+
+
 async def _setup_edit(repository: Repository, state: StateFake, message: Message, query_enter: bool, exist: bool):
     if exist:
-        async with repository.get_session() as session:
-            session.add(Selection(attendee=42, time_slot_id=1, speech_id=1))
-            await session.commit()
+        await _add_initial(repository)
     wizard = AsyncMock()
     scene = EditingScene(wizard)
 
@@ -244,6 +247,18 @@ async def _setup_edit(repository: Repository, state: StateFake, message: Message
         assert substring in text
 
     return wizard, scene
+
+
+async def _assert_selected(repository: Repository, slot: int, speech: int | None):
+    async with repository.get_session() as session:
+        result = await session.scalars(select(Selection))
+        if speech is None:
+            assert result.first() is None
+        else:
+            selection = result.one()
+            assert selection.attendee == 42
+            assert selection.time_slot_id == slot
+            assert selection.speech_id == speech
 
 
 @pytest.mark.asyncio
@@ -265,12 +280,7 @@ async def test_edit(repository: Repository, state: StateFake, user: User, messag
     wizard.retake.assert_awaited_once()
     kwargs = wizard.retake.await_args.kwargs
     assert kwargs['slots'] == [2]
-    async with repository.get_session() as session:
-        result = await session.scalars(select(Selection))
-        selection = result.one()
-        assert selection.attendee == 42
-        assert selection.time_slot_id == 1
-        assert selection.speech_id == 3
+    await _assert_selected(repository, 1, 3)
 
 
 @pytest.mark.asyncio
@@ -292,9 +302,7 @@ async def test_edit_remove(repository: Repository, state: StateFake, user: User,
     wizard.retake.assert_awaited_once()
     kwargs = wizard.retake.await_args.kwargs
     assert kwargs['slots'] == [2]
-    async with repository.get_session() as session:
-        result = await session.scalars(select(Selection))
-        assert result.first() is None
+    await _assert_selected(repository, 1, None)
 
 
 @pytest.mark.asyncio
@@ -307,12 +315,7 @@ async def test_edit_other(repository: Repository, state: StateFake, user: User, 
     await scene.on_query(query, state, repository)
 
     wizard.retake.assert_not_called()
-    async with repository.get_session() as session:
-        result = await session.scalars(select(Selection))
-        selection = result.one()
-        assert selection.attendee == 42
-        assert selection.time_slot_id == 3
-        assert selection.speech_id == 4
+    await _assert_selected(repository, 3, 4)
 
 
 @pytest.mark.asyncio
@@ -363,3 +366,29 @@ async def test_edit_end(repository: Repository, state: StateFake, user: User, me
     text = message.bot.await_args.args[0].text  # type: ignore
     assert 'Готово' in text
     wizard.exit.assert_called_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('exist', [False, True])
+async def test_edit_off_scene(repository: Repository, user: User, exist: bool):
+    if exist:
+        await _add_initial(repository)
+
+    query = AsyncMock(from_user=user, data='select#1#3')
+    await personal_edit.handle_selection_query(query, repository)
+
+    query.answer.assert_awaited_with('Сохранено')
+    await _assert_selected(repository, 1, 3)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('exist', [False, True])
+async def test_edit_off_scene_remove(repository: Repository, user: User, exist: bool):
+    if exist:
+        await _add_initial(repository)
+
+    query = AsyncMock(from_user=user, data='select#1#-1')
+    await personal_edit.handle_selection_query(query, repository)
+
+    query.answer.assert_awaited_with('Сохранено')
+    await _assert_selected(repository, 1, None)

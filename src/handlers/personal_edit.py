@@ -26,9 +26,9 @@ NOTHING_OPTION = 'Ничего'
 
 def init(router: Router):
     registry = SceneRegistry(router)
-    registry.add(EditIntentionScene, SelectDayScene,
-                 SelectSingleScene, EditingScene)
-    router.message(Command('configure'))(EditIntentionScene.as_handler())
+    registry.add(EditIntentionScene, SelectDayScene, SelectSingleScene, EditingScene)
+    router.message.register(EditIntentionScene.as_handler(), Command('configure'))
+    router.callback_query.register(handle_selection_query, F.data.startswith('select#'))
 
 
 def _format_user(user: User | None):
@@ -212,17 +212,7 @@ class EditingScene(Scene, state='editing'):
 
     @on.callback_query(F.data.startswith('select#'))
     async def on_query(self, callback: CallbackQuery, state: FSMContext, repository: Repository):
-        query = callback.data
-        assert query is not None
-        data = query.split('#')
-        slot = int(data[1])
-        selection: int | None = int(data[2])
-        if selection == -1:
-            selection = None
-        user = callback.from_user
-        self._logger.debug('User %s selected speech %s for slot %d', _format_user(user), selection, slot)
-        await repository.save_selection(user.id, slot, selection)
-        await callback.answer('Сохранено')
+        slot = await handle_selection_query(callback, repository)
         slots: list[int] | None = await state.get_value('slots')
         assert slots is not None
         if slots[0] == slot:
@@ -232,3 +222,18 @@ class EditingScene(Scene, state='editing'):
     @on.message()
     async def on_unknown(self, message: Message):
         await message.answer('Выберете значение из списка')
+
+
+async def handle_selection_query(callback: CallbackQuery, repository: Repository):
+    query = callback.data
+    assert query is not None
+    data = query.split('#')
+    slot = int(data[1])
+    selection: int | None = int(data[2])
+    if selection == -1:
+        selection = None
+    user = callback.from_user
+    logging.getLogger(__name__).debug('User %s selected speech %s for slot %d', _format_user(user), selection, slot)
+    await repository.save_selection(user.id, slot, selection)
+    await callback.answer('Сохранено')
+    return slot
