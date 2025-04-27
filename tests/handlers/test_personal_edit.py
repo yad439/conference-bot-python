@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 import pytest_asyncio
 from aiogram import Router
-from aiogram.types import Chat, Message, User
+from aiogram.types import Chat, InaccessibleMessage, Message, User
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -348,6 +348,20 @@ async def test_edit_wrong_query(repository: Repository, state: StateFake, user: 
     query.answer.assert_awaited_once()
     args = query.answer.await_args.args
     assert 'не так' in args[0]
+
+
+@pytest.mark.asyncio
+async def test_edit_enter_inaccessible(caplog: pytest.LogCaptureFixture):
+    wizard = AsyncMock()
+    repository = AsyncMock()
+    state = AsyncMock()
+    callback = AsyncMock(message=InaccessibleMessage(chat=Chat(id=1, type='private'), message_id=1))
+    scene = EditingScene(wizard)
+
+    await scene.on_query_enter(callback, state, repository, [1, 2])
+
+    callback.answer.assert_awaited_with('Что-то пошло не так')
+    assert 'InaccessibleMessage' in caplog.text
 
 
 @pytest.mark.asyncio
