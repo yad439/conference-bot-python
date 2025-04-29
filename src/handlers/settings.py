@@ -39,7 +39,9 @@ async def handle_set_setting(callback: CallbackQuery, repository: Repository):
             return
     message = callback.message
     if isinstance(message, Message):
-        await message.edit_text(view.notifications.render_settings(enabled), reply_markup=_build_settings_keyboard())
+        new_text = view.notifications.render_settings(enabled)
+        if message.text != new_text:
+            await message.edit_text(view.notifications.render_settings(enabled), reply_markup=_build_settings_keyboard())
 
 
 def _build_settings_keyboard():
