@@ -32,10 +32,10 @@ def init(router: Router):
     router.callback_query.register(handle_selection_query, and_f(F.data.startswith('select#'), _scene_filter))
 
 
-async def _scene_filter(*args: Any, **kwargs: Any):
+async def _scene_filter(*_: Any, **kwargs: Any):
     state: FSMContext = kwargs['state']
     current_state = await state.get_state()
-    return current_state is not 'editing'
+    return current_state != 'editing'
 
 
 def _format_user(user: User | None):
@@ -80,7 +80,8 @@ class SelectDayScene(Scene, state='selectDay'):
         for day in days:
             keyboard.button(text=day.strftime('%d.%m'))
         answer = 'Возможные варианты:\n' + '\n'.join(map(timetable.make_date_string, days))
-        await state.update_data(days={day.strftime('%d.%m'): day for day in days} | {str(i + 1): day for i, day in enumerate(days)})
+        await state.update_data(days={day.strftime('%d.%m'): day for day in days}
+                                | {str(i + 1): day for i, day in enumerate(days)})
         await message.answer(answer, reply_markup=keyboard.as_markup())
 
     @on.message(F.text)
