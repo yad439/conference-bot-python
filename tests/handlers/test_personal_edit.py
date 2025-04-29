@@ -231,7 +231,8 @@ async def _add_initial(repository: Repository):
         session.add(Selection(attendee=42, time_slot_id=1, speech_id=1))
 
 
-async def _setup_edit(repository: Repository, state: StateFake, message: Message, query_enter: bool, exist: bool):
+async def _setup_edit(repository: Repository, state: StateFake, user: User, message: Message, query_enter: bool,
+                      exist: bool):
     if exist:
         await _add_initial(repository)
     wizard = AsyncMock()
@@ -269,7 +270,7 @@ async def _assert_selected(repository: Repository, slot: int, speech: int | None
 @pytest.mark.parametrize('exist', [False, True])
 async def test_edit(repository: Repository, state: StateFake, user: User, message: Message,
                     query_reply: bool, query_enter: bool, exist: bool):
-    wizard, scene = await _setup_edit(repository, state, message, query_enter, exist)
+    wizard, scene = await _setup_edit(repository, state, user, message, query_enter, exist)
 
     if query_reply:
         query = AsyncMock(from_user=user, data='select#1#3')
@@ -291,7 +292,7 @@ async def test_edit(repository: Repository, state: StateFake, user: User, messag
 @pytest.mark.parametrize('exist', [False, True])
 async def test_edit_remove(repository: Repository, state: StateFake, user: User, message: Message,
                            query_reply: bool, query_enter: bool, exist: bool):
-    wizard, scene = await _setup_edit(repository, state, message, query_enter, exist)
+    wizard, scene = await _setup_edit(repository, state, user, message, query_enter, exist)
 
     if query_reply:
         query = AsyncMock(from_user=user, data='select#1#-1')
@@ -311,7 +312,7 @@ async def test_edit_remove(repository: Repository, state: StateFake, user: User,
 @pytest.mark.parametrize('query_enter', [False, True])
 async def test_edit_other(repository: Repository, state: StateFake, user: User, message: Message,
                           query_enter: bool):
-    wizard, scene = await _setup_edit(repository, state, message, query_enter, False)
+    wizard, scene = await _setup_edit(repository, state, user, message, query_enter, False)
 
     query = AsyncMock(from_user=user, data='select#3#4')
     await scene.on_query(query, state, repository)
@@ -326,7 +327,7 @@ async def test_edit_other(repository: Repository, state: StateFake, user: User, 
 @pytest.mark.parametrize('exist', [False, True])
 async def test_edit_wrong_message(repository: Repository, state: StateFake, user: User, message: Message,
                                   query_reply: bool, query_enter: bool, exist: bool):
-    _, scene = await _setup_edit(repository, state, message, query_enter, exist)
+    _, scene = await _setup_edit(repository, state, user, message, query_enter, exist)
 
     message = AsyncMock(text='C', from_user=user)
     await scene.on_message(message, state, repository)
@@ -342,7 +343,7 @@ async def test_edit_wrong_message(repository: Repository, state: StateFake, user
 @pytest.mark.parametrize('exist', [False, True])
 async def test_edit_wrong_query(repository: Repository, state: StateFake, user: User, message: Message,
                                 query_enter: bool, exist: bool):
-    _, scene = await _setup_edit(repository, state, message, query_enter, exist)
+    _, scene = await _setup_edit(repository, state, user, message, query_enter, exist)
 
     query = AsyncMock(from_user=user, data='select#1#10')
     await scene.on_query(query, state, repository)
