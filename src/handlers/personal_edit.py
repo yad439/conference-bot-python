@@ -100,7 +100,8 @@ class SelectSingleScene(Scene, state='selectSingle'):
         self._logger.debug('User %s started selecting single slot', _format_user(message.from_user))
         slots = await repository.get_all_slots()
         slot_mapping: list[int] = []
-        result = StringIO('Выберете номер слота:\n')
+        result = StringIO()
+        result.write('Выберете номер слота:\n')
         for date, day_slots in itertools.groupby(slots, key=lambda slot: slot.date):
             result.write(timetable.make_date_string(date))
             result.write(':\n')
@@ -109,7 +110,7 @@ class SelectSingleScene(Scene, state='selectSingle'):
                 result.write(f'{len(slot_mapping)}: {timetable.make_slot_string(slot)}\n')
                 slot_mapping.append(slot.id)
         await state.update_data(slot_mapping=slot_mapping)
-        await message.answer(result.getvalue())
+        await message.answer(result.getvalue(), reply_markup=ReplyKeyboardRemove())
 
     @on.message(F.text)
     async def on_message(self, message: Message, state: FSMContext):
