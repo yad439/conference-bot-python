@@ -231,6 +231,7 @@ async def handle_selection_query(callback: CallbackQuery, repository: Repository
     if selection == -1:
         selection = None
     user = callback.from_user
+    assert user is not None
     logging.getLogger(__name__).debug('User %s selected speech %s for slot %d', _format_user(user), selection, slot)
     await repository.save_selection(user.id, slot, selection)
     await callback.answer('Сохранено')
