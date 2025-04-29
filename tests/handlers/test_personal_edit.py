@@ -129,7 +129,9 @@ async def test_editing_intent_wrong(repository: Repository):
 
 TEST_DATA_DAYS = [
     ('1', [1, 2]),
-    ('2', [3])
+    ('2', [3]),
+    ('01.06', [1, 2]),
+    ('02.06', [3]),
 ]
 
 

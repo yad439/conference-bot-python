@@ -28,7 +28,7 @@ def init(router: Router):
     registry = SceneRegistry(router)
     registry.add(EditIntentionScene, SelectDayScene, SelectSingleScene, EditingScene)
     router.message.register(EditIntentionScene.as_handler(), Command('configure'))
-    router.callback_query.register(handle_selection_query, F.data.startswith('select#'))
+    router.callback_query.register(handle_selection_query, F.data.startswith('select#') & (F.state != 'editing'))
 
 
 def _format_user(user: User | None):
@@ -70,30 +70,26 @@ class SelectDayScene(Scene, state='selectDay'):
         self._logger.debug('User %s started selecting day', _format_user(message.from_user))
         days = await repository.get_all_dates()
         keyboard = ReplyKeyboardBuilder()
-        for i in range(len(days)):
-            keyboard.button(text=str(i + 1))
+        for day in days:
+            keyboard.button(text=day.strftime('%d.%m'))
         answer = 'Возможные варианты:\n' + '\n'.join(map(timetable.make_date_string, days))
-        await state.update_data(days=days)
+        await state.update_data(days={day.strftime('%d.%m'): day for day in days} | {str(i + 1): day for i, day in enumerate(days)})
         await message.answer(answer, reply_markup=keyboard.as_markup())
 
     @on.message(F.text)
     async def on_message(self, message: Message, state: FSMContext, repository: Repository):
         self._logger.debug('User %s selected day %s', _format_user(message.from_user), message.text)
-        try:
-            text = message.text
-            assert text is not None
-            value = int(text)
-            if value < 1:
-                await message.answer('Выберете из доступных дней')
-                return
-            days: list[datetime.date] | None = await state.get_value('days')
-            assert days is not None
-            date: datetime.date = days[value - 1]
-            slots = await repository.get_slot_ids_on_day(date)
-            await self.wizard.goto(EditingScene, slots=slots)
-        except (ValueError, IndexError):
+        text = message.text
+        assert text is not None
+        days: dict[str, datetime.date] | None = await state.get_value('days')
+        assert days is not None
+        if text not in days:
             self._logger.warning('User %s selected invalid day %s', _format_user(message.from_user), message.text)
             await message.answer('Выберете из доступных дней')
+            return
+        date = days[text]
+        slots = await repository.get_slot_ids_on_day(date)
+        await self.wizard.goto(EditingScene, slots=slots)
 
 
 class SelectSingleScene(Scene, state='selectSingle'):
@@ -164,6 +160,7 @@ class EditingScene(Scene, state='editing'):
     @on.callback_query.enter()
     async def on_query_enter(self, callback: CallbackQuery, state: FSMContext, repository: Repository,
                              slots: list[int]):
+        self._logger.debug('User %s editing schedule: slots remaining %s', _format_user(callback.from_user), slots)
         message = callback.message
         if isinstance(message, Message):
             await self.on_enter(message, state, repository, slots)
@@ -212,6 +209,7 @@ class EditingScene(Scene, state='editing'):
 
     @on.callback_query(F.data.startswith('select#'))
     async def on_query(self, callback: CallbackQuery, state: FSMContext, repository: Repository):
+        self._logger.debug('User %s selected location from inline keyboard', _format_user(callback.from_user))
         slot = await handle_selection_query(callback, repository)
         slots: list[int] | None = await state.get_value('slots')
         assert slots is not None
