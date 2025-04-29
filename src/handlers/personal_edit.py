@@ -2,9 +2,10 @@ import datetime
 import itertools
 import logging
 from io import StringIO
+from typing import Any
 
 from aiogram import F, Router
-from aiogram.filters import Command
+from aiogram.filters import Command, and_f
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.scene import Scene, SceneRegistry, on
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove, User
@@ -28,7 +29,13 @@ def init(router: Router):
     registry = SceneRegistry(router)
     registry.add(EditIntentionScene, SelectDayScene, SelectSingleScene, EditingScene)
     router.message.register(EditIntentionScene.as_handler(), Command('configure'))
-    router.callback_query.register(handle_selection_query, F.data.startswith('select#') & (F.state != 'editing'))
+    router.callback_query.register(handle_selection_query, and_f(F.data.startswith('select#'), _scene_filter))
+
+
+async def _scene_filter(*args: Any, **kwargs: Any):
+    state: FSMContext = kwargs['state']
+    current_state = await state.get_state()
+    return current_state is not 'editing'
 
 
 def _format_user(user: User | None):
