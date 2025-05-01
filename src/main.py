@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 import data.mock_data
 import data.setup
 import handlers.general
+import handlers.middleware
 import handlers.personal_edit
 import handlers.personal_view
 import handlers.settings
@@ -33,6 +34,7 @@ async def main():
     dispatcher.include_router(handlers.personal_view.get_router())
     dispatcher.include_router(handlers.settings.get_router())
     handlers.personal_edit.init(dispatcher)
+    handlers.middleware.init_middleware(dispatcher)
 
     scheduler = AsyncIOScheduler()
     await event_start.configure_events(scheduler, repository, bot, 5)
