@@ -386,6 +386,19 @@ async def test_edit_end(repository: Repository, state: StateFake, user: User, me
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize('query_enter', [False, True])
+async def test_edit_cancel(repository: Repository, state: StateFake, user: User, message: Message,
+                           query_enter: bool):
+    wizard, scene = await _setup_edit(repository, state, user, message, query_enter, False)
+
+    message = AsyncMock(text='Отмена', from_user=user)
+    await scene.on_message(message, state, repository)
+
+    wizard.exit.assert_called_once()
+    wizard.exit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize('exist', [False, True])
 async def test_edit_off_scene(repository: Repository, user: User, exist: bool):
     if exist:
