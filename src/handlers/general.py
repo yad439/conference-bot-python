@@ -30,12 +30,12 @@ async def handle_start(message: Message, state: FSMContext):
         '''), reply_markup=builder.as_markup())
 
 
-def handle_schedule(message: Message):
+async def handle_schedule(message: Message):
     keyboard = (InlineKeyboardBuilder()
                 .button(text='Всё', callback_data='show_general_all')
                 .button(text='Сегодня', callback_data='show_general_today')
                 .button(text='Завтра', callback_data='show_general_tomorrow'))
-    return message.answer('Какую часть расписания хотите просмотреть?', reply_markup=keyboard.as_markup())
+    return await message.answer('Какую часть расписания хотите просмотреть?', reply_markup=keyboard.as_markup())
 
 
 async def handle_schedule_selection(callback: CallbackQuery, repository: Repository):
