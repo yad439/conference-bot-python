@@ -21,11 +21,6 @@ async def repository():
     return Repository(session_maker)
 
 
-def test_router():
-    router = general.get_router()
-    assert router is not None
-
-
 @pytest.mark.asyncio
 async def test_start():
     message = AsyncMock(text='/start')

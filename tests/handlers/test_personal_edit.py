@@ -1,7 +1,6 @@
 import datetime
 from collections import Counter
 from types import SimpleNamespace
-from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -17,19 +16,7 @@ from data.repository import Repository
 from data.tables import Selection
 from handlers import personal_edit
 from handlers.personal_edit import EditingScene, EditIntentionScene, SelectDayScene, SelectSingleScene
-
-
-class StateFake:
-    data: dict[str, Any] = {}
-
-    async def update_data(self, **kwargs: Any):
-        self.data.update(kwargs)
-
-    async def get_data(self):
-        return self.data
-
-    async def get_value(self, key: str):
-        return self.data[key]
+from tests.FakeBot import StateFake
 
 
 @pytest_asyncio.fixture  # type: ignore
