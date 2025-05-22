@@ -1,5 +1,6 @@
 import datetime
 import logging
+from typing import Any
 
 import automapper  # type: ignore
 from sqlalchemy import delete, insert, select, update
@@ -122,10 +123,32 @@ class Repository:
         async with self._factory() as session:
             return await session.scalar(statement)
 
-    async def save_notification_setting(self, user_id: int, enabled: bool):
-        self._logger.info('Saving notification setting for user %d, enabled %s', user_id, enabled)
-        update_query = update(Settings).where(Settings.user_id == user_id).values(notifications_enabled=enabled)
-        insert_query = insert(Settings).values(user_id=user_id, notifications_enabled=enabled)
+    def register_user(self, user_id: int, username: str):
+        return self._insert_or_update_setting(user_id, 'username', username)
+
+    def save_notification_setting(self, user_id: int, enabled: bool):
+        return self._insert_or_update_setting(user_id, 'notifications_enabled', enabled)
+
+    def set_admin(self, user_id: int, admin: bool):
+        return self._insert_or_update_setting(user_id, 'admin', admin)
+
+    async def is_admin(self, user_id: int):
+        statement = select(Settings.admin).where(Settings.user_id == user_id)
+        async with self._factory() as session:
+            result = await session.scalar(statement)
+            return bool(result)
+
+    async def set_admin_by_username(self, username: str, admin: bool):
+        self._logger.info('Setting admin status for user %s to %s', username, admin)
+        update_query = update(Settings).where(Settings.username == username).values(admin=admin)
+        async with self._factory() as session, session.begin():
+            updated = await session.execute(update_query)
+            return updated.rowcount > 0
+
+    async def _insert_or_update_setting(self, user_id: int, column: str, value: Any):
+        self._logger.info('Saving setting for user %d, column %s, value %s', user_id, column, value)
+        update_query = update(Settings).where(Settings.user_id == user_id).values({column: value})
+        insert_query = insert(Settings).values({'user_id': user_id, column: value})
         async with self._factory() as session, session.begin():
             updated = await session.execute(update_query)
             if updated.rowcount == 0:

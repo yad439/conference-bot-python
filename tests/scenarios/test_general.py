@@ -1,11 +1,13 @@
 import pytest
 import pytest_asyncio
 from freezegun import freeze_time
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 import data.mock_data
 import data.setup
 from data.repository import Repository
+from data.tables import Settings
 from handlers import general
 from tests.FakeBot import BotFake
 
@@ -109,3 +111,23 @@ async def test_schedule_empty(bot: BotFake, query: str):
     assert len(bot.sent_messages) == 2
     text = bot.sent_messages[1]
     assert 'Ничего' in text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('present', (True, False))
+@pytest.mark.parametrize('state', ('not present', 'registered', 'without username'))
+async def test_register(bot: BotFake, repository: Repository, present: bool, state: str):
+    if state != 'not present':
+        async with repository.get_session() as session, session.begin():
+            session.add(Settings(user_id=42, username='testUser') if present else Settings(user_id=42))
+
+    await bot.message('/register', username='testUser' if present else None)
+
+    assert len(bot.sent_messages) == 1
+    assert ('Успех' if present else 'не задано') in bot.sent_messages[0]
+    if present:
+        async with repository.get_session() as session:
+            result = await session.scalars(select(Settings))
+            setting = result.one()
+            assert setting.user_id == 42
+            assert setting.username == 'testUser'

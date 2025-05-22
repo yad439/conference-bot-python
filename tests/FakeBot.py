@@ -62,9 +62,9 @@ class BotFake:
             return True
         assert False
 
-    def message(self, text: str, user_id: int = 42, chat_id: int = 42):
+    def message(self, text: str, user_id: int = 42, chat_id: int = 42, username: str | None = 'testUser'):
         chat = Chat(id=chat_id, type='private') if chat_id == user_id else Chat(id=chat_id, type='group')
-        user = User(id=user_id, is_bot=False, first_name='Test', username='testUser')
+        user = User(id=user_id, is_bot=False, first_name='Test', username=username)
         message = Message(message_id=self._message_counter, date=datetime.datetime.now(),
                           chat=chat, text=text, from_user=user).as_(self.bot)
         self._message_counter += 1

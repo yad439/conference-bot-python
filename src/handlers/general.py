@@ -65,11 +65,23 @@ async def handle_schedule_selection(callback: CallbackQuery, repository: Reposit
         await message.answer(timetable.render_timetable(days, date is None))
 
 
+async def handle_register(message: Message, repository: Repository):
+    user = message.from_user
+    assert user is not None
+    username = user.username
+    if username is not None:
+        await repository.register_user(user.id, username)
+        await message.answer('Успех')
+    else:
+        await message.answer('Имя пользователя не задано')
+
+
 def get_router():
     router = Router()
     router.message.register(handle_start, CommandStart())
     router.message.register(handle_schedule, Command('schedule'))
     router.callback_query.register(
         handle_schedule_selection, F.data.startswith('show_general_'))
+    router.message.register(handle_register, Command('register'))
     logging.getLogger(__name__).info('General handlers registered')
     return router

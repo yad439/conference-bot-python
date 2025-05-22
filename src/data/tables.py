@@ -40,4 +40,6 @@ class Selection(Base):
 class Settings(Base):
     __tablename__ = 'settings'
     user_id: Mapped[int] = mapped_column(primary_key=True)
-    notifications_enabled: Mapped[bool] = mapped_column(nullable=True)
+    username: Mapped[str] = mapped_column(nullable=True)
+    notifications_enabled: Mapped[bool] = mapped_column(default=True)
+    admin: Mapped[bool] = mapped_column(default=False)
