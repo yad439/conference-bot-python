@@ -19,7 +19,7 @@ async def configure_events(scheduler: BaseScheduler, repository: Repository, bot
                           - datetime.timedelta(minutes=minutes_before_start))
         scheduler.add_job(notify_first, 'date',  # pyright: ignore[reportUnknownMemberType]
                           (bot, repository, prev_id, minutes_before_start), run_date=execution_time)
-        for slot in day_slots:
+        for slot in day_slots:  # noqa: B031
             current_id = slot.id
             assert current_id is not None
             execution_time = (datetime.datetime.combine(date, slot.start_time)

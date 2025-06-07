@@ -1,4 +1,7 @@
+# ruff: noqa: PLR2004
+
 import asyncio
+from typing import Any
 from unittest.mock import AsyncMock, call
 
 import pytest
@@ -42,13 +45,13 @@ async def test_notify_first(repository: Repository):
 
     await event_start.notify_first(bot, repository, 1, 5)
 
-    args = (
+    expected_calls_first_event = (
         call(41, 'Через 5 минут начинается доклад "About something" (A)'),
         call(42, 'Через 5 минут начинается доклад "Alternative point" (B)'),
         call(44, 'Через 5 минут начинается доклад "About something" (A)'),
         call(45, 'Через 5 минут начинается доклад "Alternative point" (B)'),
     )
-    bot.send_message.assert_has_awaits(args, any_order=True)
+    bot.send_message.assert_has_awaits(expected_calls_first_event, any_order=True)
     assert bot.send_message.await_count == 4
 
 
@@ -73,7 +76,7 @@ async def test_configure(repository: Repository):
     scheduler = AsyncIOScheduler()
     semaphore = asyncio.Semaphore(0)
 
-    async def release_semaphore(*_):
+    def release_semaphore(*_: Any):  # noqa: ANN401
         semaphore.release()
     bot.send_message.side_effect = release_semaphore
 
@@ -85,7 +88,7 @@ async def test_configure(repository: Repository):
 
         frozen_time.tick(60)
         async with asyncio.timeout(5):
-            for _ in range(3):
+            for _ in range(4):
                 await semaphore.acquire()
 
         args = (
@@ -100,13 +103,13 @@ async def test_configure(repository: Repository):
 
         frozen_time.move_to('2025-06-01 09:55:00')
         async with asyncio.timeout(5):
-            for _ in range(2):
+            for _ in range(3):
                 await semaphore.acquire()
 
-        args2 = (
+        expected_calls_second_event = (
             call(42, 'Через 5 минут начинается доклад "About something else" (A)'),
             call(43, 'Через 5 минут начинается доклад "About something else" (A)'),
             call(45, 'Через 5 минут начинается доклад "About something else" (A)'),
         )
-        bot.send_message.assert_has_awaits(args2, any_order=True)
+        bot.send_message.assert_has_awaits(expected_calls_second_event, any_order=True)
         assert bot.send_message.await_count == 3

@@ -10,7 +10,7 @@ import data.mock_data
 import data.setup
 from data.repository import Repository
 from data.tables import Selection
-from handlers.personal_view import handle_personal_view, handle_personal_view_selection, get_router
+from handlers.personal_view import get_router, handle_personal_view, handle_personal_view_selection
 
 
 @pytest_asyncio.fixture  # type: ignore
@@ -32,7 +32,7 @@ def test_router():
 
 
 @pytest.mark.asyncio
-async def test_handle_personal_view(repository: Repository):
+async def test_handle_personal_view():
     message = AsyncMock()
     await handle_personal_view(message)
     message.answer.assert_called_once()
@@ -58,7 +58,7 @@ async def test_handle_personal_view_all(repository: Repository):
 
 @pytest.mark.asyncio
 @freeze_time('2025-05-01')
-@pytest.mark.parametrize('query,user', [('show_personal_all', 41),
+@pytest.mark.parametrize(('query', 'user'), [('show_personal_all', 41),
                          ('show_personal_today', 42), ('show_personal_tomorrow', 42)])
 async def test_handle_personal_view_empty(repository: Repository, query: str, user: int):
     callback = AsyncMock(data=query)

@@ -2,6 +2,7 @@ import datetime
 import itertools
 import logging
 import textwrap
+from zoneinfo import ZoneInfo
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
@@ -44,13 +45,14 @@ async def handle_schedule_selection(callback: CallbackQuery, repository: Reposit
         await callback.answer('Сообщение устарело')
         return
     query = callback.data
+    timezone = ZoneInfo('Asia/Novosibirsk')
     match query:
         case 'show_general_all':
             date = None
         case 'show_general_today':
-            date = datetime.date.today()
+            date = datetime.datetime.now(timezone).date()
         case 'show_general_tomorrow':
-            date = datetime.date.today() + datetime.timedelta(days=1)
+            date = datetime.datetime.now(timezone).date() + datetime.timedelta(days=1)
         case _:
             logging.getLogger(__name__).error('Received unknown general command %s', query)
             await callback.answer('Что-то пошло не так')

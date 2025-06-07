@@ -1,8 +1,7 @@
-import datetime
 import itertools
 import logging
 from io import StringIO
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from aiogram import F, Router
 from aiogram.filters import Command, and_f
@@ -12,8 +11,12 @@ from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove, User
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
 from data.repository import Repository
-from dto import SpeechDto
 from view import timetable
+
+if TYPE_CHECKING:
+    import datetime
+
+    from dto import SpeechDto
 
 
 class Intention:  # pylint: disable=too-few-public-methods

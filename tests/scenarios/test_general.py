@@ -1,3 +1,5 @@
+# ruff: noqa: PLR2004
+
 import pytest
 import pytest_asyncio
 from freezegun import freeze_time
@@ -9,7 +11,7 @@ import data.setup
 from data.repository import Repository
 from data.tables import Settings
 from handlers import general
-from tests.FakeBot import BotFake
+from tests.fake_bot import BotFake
 
 
 @pytest_asyncio.fixture  # type: ignore
@@ -101,7 +103,7 @@ async def test_general_tomorrow(bot: BotFake):
 
 @pytest.mark.asyncio
 @freeze_time('2025-05-01')
-@pytest.mark.parametrize('query', ('show_general_today', 'show_general_tomorrow'))
+@pytest.mark.parametrize('query', ['show_general_today', 'show_general_tomorrow'])
 async def test_schedule_empty(bot: BotFake, query: str):
     message = await _init_general(bot)
 
@@ -114,8 +116,8 @@ async def test_schedule_empty(bot: BotFake, query: str):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('present', (True, False))
-@pytest.mark.parametrize('state', ('not present', 'registered', 'without username'))
+@pytest.mark.parametrize('present', [True, False])
+@pytest.mark.parametrize('state', ['not present', 'registered', 'without username'])
 async def test_register(bot: BotFake, repository: Repository, present: bool, state: str):
     if state != 'not present':
         async with repository.get_session() as session, session.begin():

@@ -4,7 +4,8 @@
 	"features": {
 		"ghcr.io/devcontainers-extra/features/flake8:latest": {},
 		"ghcr.io/devcontainers-extra/features/mypy:latest": {},
-		"ghcr.io/devcontainers-extra/features/pylint:latest": {}
+		"ghcr.io/devcontainers-extra/features/pylint:latest": {},
+		"ghcr.io/devcontainers-extra/features/ruff:latest": {}
 	},
 	"postCreateCommand": "pip3 install --user -r requirements.txt",
 	"customizations": {
@@ -13,7 +14,8 @@
 				"ms-python.python",
 				"streetsidesoftware.code-spell-checker-russian",
 				"SonarSource.sonarlint-vscode",
-				"ms-python.isort"
+				"ms-python.isort",
+				"charliermarsh.ruff"
 			]
 		}
 	}

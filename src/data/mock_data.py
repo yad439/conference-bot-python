@@ -32,4 +32,4 @@ async def fill_tables(session_factory: async_sessionmaker[AsyncSession]):
             {'title': 'Alternative day 2', 'speaker': 'Mr. Alternative',
              'time_slot_id': ids[2], 'location': 'B'},
         ])
-    logging.info('Tables filled with mock data')
+    logging.getLogger(__name__).info('Tables filled with mock data')

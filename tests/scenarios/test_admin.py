@@ -13,7 +13,7 @@ import data.setup
 from data.repository import Repository
 from data.tables import Settings, Speech
 from handlers import admin
-from tests.FakeBot import BotFake
+from tests.fake_bot import BotFake
 
 
 @pytest_asyncio.fixture  # type: ignore
@@ -47,8 +47,8 @@ async def test_access_denied(bot: BotFake, command: str):
 @pytest.mark.parametrize(('target_user', 'target_id'), [('43', 43), ('44', 44), ('another_user', 43),
                                                         ('unknown_user', -1)])
 @pytest.mark.parametrize('target_admin', [True, False, None])
-async def test_set_admin(bot: BotFake, repository: Repository, set_admin: bool, target_user: str,
-                         target_id: int, target_admin: bool | None):
+async def test_set_admin(bot: BotFake, repository: Repository, set_admin: bool,  # noqa: PLR0913, PLR0917
+                         target_user: str, target_id: int, target_admin: bool | None):
     async with repository.get_session() as session, session.begin():
         session.add(Settings(user_id=43, username='another_user', admin=target_admin))
 

@@ -19,8 +19,9 @@ from notifications import event_start
 async def main():
     logging.basicConfig(level=logging.DEBUG)
     token = os.getenv('TELEGRAM_TOKEN')
+    logger = logging.getLogger(__name__)
     if token is None:
-        logging.critical('Token environment variable not found')
+        logger.critical('Token environment variable not found')
         return
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(engine)
@@ -40,7 +41,7 @@ async def main():
     await event_start.configure_events(scheduler, repository, bot, 5)
     scheduler.start()
 
-    logging.info('Starting polling')
+    logger.info('Starting polling')
     await dispatcher.start_polling(bot)  # type: ignore
 
 if __name__ == '__main__':

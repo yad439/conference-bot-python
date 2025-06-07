@@ -34,7 +34,7 @@ async def test_start():
 
 
 @pytest.mark.asyncio
-async def test_handle_personal_view(repository: Repository):
+async def test_handle_personal_view():
     message = AsyncMock()
     await general.handle_schedule(message)
     message.answer.assert_awaited_once()
@@ -94,7 +94,7 @@ async def test_schedule_tomorrow(repository: Repository):
 
 @pytest.mark.asyncio
 @freeze_time('2025-05-01')
-@pytest.mark.parametrize('query', ('show_general_today', 'show_general_tomorrow'))
+@pytest.mark.parametrize('query', ['show_general_today', 'show_general_tomorrow'])
 async def test_schedule_empty(repository: Repository, query: str):
     callback = AsyncMock(data=query)
 

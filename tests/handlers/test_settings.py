@@ -31,7 +31,7 @@ def test_router():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('user,expected', [(41, True), (42, False), (43, True)])
+@pytest.mark.parametrize(('user', 'expected'), [(41, True), (42, False), (43, True)])
 async def test_handle_settings(repository: Repository, user: int, expected: bool):
     message = AsyncMock(text='/settings')
     message.from_user.id = user
@@ -52,7 +52,7 @@ async def test_handle_settings(repository: Repository, user: int, expected: bool
 async def test_handle_change_settings(repository: Repository, user: int, option: bool):
     callback = AsyncMock(data='set_notifications_on' if option else 'set_notifications_off')
     callback.from_user.id = user
-    callback.message = Message(message_id=1, date=datetime.datetime(2025, 1, 1),
+    callback.message = Message(message_id=1, date=datetime.datetime(2025, 1, 1),  # noqa: DTZ001
                                chat=Chat(id=1, type='private')).as_(AsyncMock())
 
     await settings.handle_set_setting(callback, repository)
@@ -69,7 +69,7 @@ async def test_handle_change_settings(repository: Repository, user: int, option:
 async def test_handle_change_settings_unknown(repository: Repository):
     callback = AsyncMock(data='set_notifications_schrodinger')
     callback.from_user.id = 42
-    callback.message = Message(message_id=1, date=datetime.datetime(2025, 1, 1),
+    callback.message = Message(message_id=1, date=datetime.datetime(2025, 1, 1),  # noqa: DTZ001
                                chat=Chat(id=1, type='private')).as_(AsyncMock())
 
     await settings.handle_set_setting(callback, repository)

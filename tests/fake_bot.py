@@ -50,7 +50,7 @@ class BotFake:
 
     @property
     def bot(self):
-        return typing.cast(Bot, self)
+        return typing.cast('Bot', self)
 
     async def __call__(self, method: TelegramMethod[Any]):
         if isinstance(method, SendMessage):
@@ -59,7 +59,7 @@ class BotFake:
             message_id = self._id_counter
             self._id_counter += 1
             keyboard = method.reply_markup if isinstance(method.reply_markup, InlineKeyboardMarkup) else None
-            message = Message(message_id=message_id, date=datetime.datetime.now(),
+            message = Message(message_id=message_id, date=datetime.datetime.now(),  # noqa: DTZ005
                               chat=Chat(id=chat_id, type='private'), text=method.text,
                               reply_markup=keyboard).as_(self.bot)
             self.messages.append(message)

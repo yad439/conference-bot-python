@@ -16,9 +16,9 @@ from .tables import Selection, Settings, Speech, TimeSlot
 
 class Repository:
     def __init__(self, factory: async_sessionmaker[AsyncSession],
-                 timezone: datetime.tzinfo = ZoneInfo('Asia/Novosibirsk')) -> None:
+                 timezone: datetime.tzinfo | None = None) -> None:
         self._factory = factory
-        self._timezone = timezone
+        self._timezone = timezone or ZoneInfo('Asia/Novosibirsk')
         self._mapper = automapper.mapper.to(SpeechDto)
         self._to_speech_mapper = automapper.mapper.to(Speech)
         self._selection_mapper = automapper.mapper.to(SelectionDto)

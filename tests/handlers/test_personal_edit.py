@@ -1,3 +1,5 @@
+# ruff : noqa: PLR0913,PLR0917,PLR2004
+
 import datetime
 from collections import Counter
 from types import SimpleNamespace
@@ -16,7 +18,7 @@ from data.repository import Repository
 from data.tables import Selection
 from handlers import personal_edit
 from handlers.personal_edit import EditingScene, EditIntentionScene, SelectDayScene, SelectSingleScene
-from tests.FakeBot import StateFake
+from tests.fake_bot import StateFake
 
 
 @pytest_asyncio.fixture  # type: ignore
@@ -40,7 +42,8 @@ def user():
 
 @pytest.fixture
 def message():
-    return Message(message_id=1, date=datetime.datetime(2025, 1, 1), chat=Chat(id=1, type='private')).as_(AsyncMock())
+    return Message(message_id=1, date=datetime.datetime(2025, 1, 1),  # noqa: DTZ001
+                   chat=Chat(id=1, type='private')).as_(AsyncMock())
 
 
 def test_router():
@@ -114,6 +117,7 @@ async def test_editing_intent_wrong(repository: Repository):
     args = message.answer.await_args.args
     assert 'Выберете' in args[0]
 
+
 TEST_DATA_DAYS = [
     ('1', [1, 2]),
     ('2', [3]),
@@ -123,7 +127,7 @@ TEST_DATA_DAYS = [
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('day,slots', TEST_DATA_DAYS)
+@pytest.mark.parametrize(('day', 'slots'), TEST_DATA_DAYS)
 async def test_select_day(repository: Repository, state: StateFake, day: str, slots: list[int]):
     wizard = AsyncMock()
     scene = SelectDayScene(wizard)
@@ -309,11 +313,10 @@ async def test_edit_other(repository: Repository, state: StateFake, user: User, 
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('query_reply', [False, True])
 @pytest.mark.parametrize('query_enter', [False, True])
 @pytest.mark.parametrize('exist', [False, True])
 async def test_edit_wrong_message(repository: Repository, state: StateFake, user: User, message: Message,
-                                  query_reply: bool, query_enter: bool, exist: bool):
+                                  query_enter: bool, exist: bool):
     _, scene = await _setup_edit(repository, state, user, message, query_enter, exist)
 
     message = AsyncMock(text='C', from_user=user)

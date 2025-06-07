@@ -1,3 +1,5 @@
+# ruff: noqa: PLR2004
+
 import dataclasses
 import datetime
 from collections import Counter
