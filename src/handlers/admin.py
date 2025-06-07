@@ -81,9 +81,9 @@ async def modify_schedule_handler(message: Message, repository: Repository):
         return
     bot = message.bot
     assert bot is not None
-    file = await bot.download(file.file_id)
-    assert file is not None
-    text_io = TextIOWrapper(file, encoding='utf-8')
+    file_io = await bot.download(file.file_id)
+    assert file_io is not None
+    text_io = TextIOWrapper(file_io, encoding='utf-8')
     try:
         slots, speeches, deletes = _parse_csv(text_io)
     except (ValueError, KeyError):

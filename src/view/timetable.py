@@ -1,5 +1,5 @@
 import datetime
-from collections.abc import Iterable  # pylint: disable=import-error
+from collections.abc import Iterable
 from enum import Enum, auto
 from io import StringIO
 

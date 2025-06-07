@@ -1,0 +1,29 @@
+[MAIN]
+enable-all-extensions=yes
+jobs=0
+source-roots=src
+
+[FORMAT]
+max-line-length=120
+
+[MESSAGES CONTROL]
+
+disable=
+      ;raw-checker-failed,
+      ;   bad-inline-option,
+        locally-disabled,
+      ;   file-ignored,
+        suppressed-message,
+      ;   useless-suppression,
+      ;   deprecated-pragma,
+      ;   use-symbolic-message-instead,
+      ;   use-implicit-booleaness-not-comparison-to-string,
+      ;   use-implicit-booleaness-not-comparison-to-zero,
+        missing-module-docstring,
+        missing-class-docstring,
+        missing-function-docstring
+
+enable=all
+[STRING]
+check-quote-consistency=yes
+check-str-concat-over-line-jumps=yes

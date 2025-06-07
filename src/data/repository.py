@@ -203,7 +203,7 @@ class Repository:
         insert_query = insert(Settings).values({'user_id': user_id, column: value})
         async with self._factory() as session, session.begin():
             updated = await session.execute(update_query)
-            if updated.rowcount == 0:
+            if not updated.rowcount:
                 await session.execute(insert_query)
 
     def _update_speeches_slot_timezone(self, speeches: Iterable[Speech]):

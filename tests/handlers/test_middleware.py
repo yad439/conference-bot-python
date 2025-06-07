@@ -11,7 +11,7 @@ from handlers import middleware
 @pytest.mark.asyncio
 async def test_reroute_to_personal():
     message = Message(message_id=1, date=datetime.datetime(1, 1, 1),  # noqa: DTZ001
-                       chat=Chat(id=10, type='group'),
+                      chat=Chat(id=10, type='group'),
                       from_user=User(id=1, is_bot=False, first_name='Test', last_name='User', username='testuser'))
     router = Router()
     scenes = SimpleNamespace()
