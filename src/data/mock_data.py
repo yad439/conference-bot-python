@@ -1,5 +1,6 @@
 import datetime
 import logging
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -8,14 +9,15 @@ from .tables import Speech, TimeSlot
 
 
 async def fill_tables(session_factory: async_sessionmaker[AsyncSession]):
-    async with session_factory() as session:
+    async with session_factory() as session, session.begin():
+        timezone = ZoneInfo('Asia/Novosibirsk')
         id_result = await session.execute(insert(TimeSlot).returning(TimeSlot.id), [
-            {'date': datetime.date(2025, 6, 1), 'start_time': datetime.time(
-                9, 0), 'end_time': datetime.time(10, 0)},
-            {'date': datetime.date(2025, 6, 1), 'start_time': datetime.time(
-                10, 0), 'end_time': datetime.time(11, 0)},
-            {'date': datetime.date(2025, 6, 2), 'start_time': datetime.time(
-                9, 0), 'end_time': datetime.time(10, 0)},
+            {'date': datetime.date(2025, 6, 1), 'start_time': datetime.time(9, tzinfo=timezone),
+             'end_time': datetime.time(10, tzinfo=timezone)},
+            {'date': datetime.date(2025, 6, 1), 'start_time': datetime.time(10, tzinfo=timezone),
+             'end_time': datetime.time(11, tzinfo=timezone)},
+            {'date': datetime.date(2025, 6, 2), 'start_time': datetime.time(9, tzinfo=timezone),
+             'end_time': datetime.time(10, tzinfo=timezone)},
         ])
         ids = id_result.scalars().all()
         await session.execute(insert(Speech), [
@@ -30,5 +32,4 @@ async def fill_tables(session_factory: async_sessionmaker[AsyncSession]):
             {'title': 'Alternative day 2', 'speaker': 'Mr. Alternative',
              'time_slot_id': ids[2], 'location': 'B'},
         ])
-        await session.commit()
     logging.info('Tables filled with mock data')

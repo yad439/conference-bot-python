@@ -13,19 +13,19 @@ class Base(DeclarativeBase):
 class TimeSlot(Base):
     __tablename__ = 'time_slots'
     id: Mapped[int] = mapped_column(primary_key=True)
-    date: Mapped[datetime.date] = mapped_column()
-    start_time: Mapped[datetime.time] = mapped_column()
-    end_time: Mapped[datetime.time] = mapped_column()
+    date: Mapped[datetime.date]
+    start_time: Mapped[datetime.time]
+    end_time: Mapped[datetime.time]
 
 
 class Speech(Base):
     __tablename__ = 'speeches'
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(unique=True)
-    speaker: Mapped[str] = mapped_column()
+    title: Mapped[str]
+    speaker: Mapped[str]
     time_slot_id: Mapped[int] = mapped_column(ForeignKey('time_slots.id'))
     time_slot: Mapped['TimeSlot'] = relationship()
-    location: Mapped[str] = mapped_column()
+    location: Mapped[str]
 
 
 class Selection(Base):
@@ -40,6 +40,6 @@ class Selection(Base):
 class Settings(Base):
     __tablename__ = 'settings'
     user_id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(nullable=True)
+    username: Mapped[str | None]
     notifications_enabled: Mapped[bool] = mapped_column(default=True)
     admin: Mapped[bool] = mapped_column(default=False)

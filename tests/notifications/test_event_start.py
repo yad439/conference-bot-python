@@ -77,7 +77,7 @@ async def test_configure(repository: Repository):
         semaphore.release()
     bot.send_message.side_effect = release_semaphore
 
-    with freeze_time('2025-06-01 08:54:00', tick=True) as frozen_time:
+    with freeze_time('2025-06-01 08:54:00', -7, tick=True) as frozen_time:
         await event_start.configure_events(scheduler, repository, bot, 5)
         scheduler.start()
 

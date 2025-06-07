@@ -2,7 +2,7 @@ import datetime
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(frozen=True)
 class TimeSlotDto:
     id: int | None
     date: datetime.date
