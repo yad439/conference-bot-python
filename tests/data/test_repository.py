@@ -13,7 +13,7 @@ from sqlalchemy.orm import selectinload
 
 import data.mock_data
 import data.setup
-from data.repository import Repository
+from data.repository import SelectionRepository, SpeechRepository, UserRepository
 from data.tables import Selection, Settings, Speech, TimeSlot
 from dto import SpeechDto, TimeSlotDto
 
@@ -60,9 +60,9 @@ def old_speeches(old_slots: list[TimeSlotDto]):
 
 @pytest.mark.asyncio
 async def test_save_selection_add(session_maker: async_sessionmaker[AsyncSession]):
-    repository = Repository(session_maker)
+    selection_repository = SelectionRepository(session_maker)
 
-    await repository.save_selection(42, 1, 3)
+    await selection_repository.save_selection(42, 1, 3)
 
     async with session_maker() as session:
         result = await session.scalars(select(Selection))
@@ -76,9 +76,9 @@ async def test_save_selection_add(session_maker: async_sessionmaker[AsyncSession
 async def test_save_selection_replace(session_maker: async_sessionmaker[AsyncSession]):
     async with session_maker() as session, session.begin():
         session.add(Selection(attendee=42, time_slot_id=1, speech_id=1))
-    repository = Repository(session_maker)
+    selection_repository = SelectionRepository(session_maker)
 
-    await repository.save_selection(42, 1, 3)
+    await selection_repository.save_selection(42, 1, 3)
 
     async with session_maker() as session:
         result = await session.scalars(select(Selection))
@@ -92,11 +92,11 @@ async def test_save_selection_replace(session_maker: async_sessionmaker[AsyncSes
 async def test_save_selection_remove(session_maker: async_sessionmaker[AsyncSession]):
     async with session_maker() as session, session.begin():
         session.add(Selection(attendee=42, time_slot_id=1, speech_id=1))
-    repository = Repository(session_maker)
+    selection_repository = SelectionRepository(session_maker)
 
-    await repository.save_selection(42, 1, None)
+    await selection_repository.save_selection(42, 1, None)
 
-    async with repository.get_session() as session:
+    async with session_maker() as session:
         result = await session.scalars(select(Selection))
         assert result.first() is None
 
@@ -118,9 +118,9 @@ async def _generate_mock_users(session_maker: async_sessionmaker[AsyncSession]):
 @pytest.mark.asyncio
 async def test_get_users_selected(session_maker: async_sessionmaker[AsyncSession]):
     await _generate_mock_users(session_maker)
-    repository = Repository(session_maker)
+    selection_repository = SelectionRepository(session_maker)
 
-    result = await repository.get_users_that_selected(2)
+    result = await selection_repository.get_users_that_selected(2)
 
     assert Counter(x.attendee for x in result) == Counter((41, 42, 43, 45))
     assert tuple(x.speech.id for x in result) == (2, 2, 2, 2)
@@ -129,9 +129,9 @@ async def test_get_users_selected(session_maker: async_sessionmaker[AsyncSession
 @pytest.mark.asyncio
 async def test_get_changing_users(session_maker: async_sessionmaker[AsyncSession]):
     await _generate_mock_users(session_maker)
-    repository = Repository(session_maker)
+    selection_repository = SelectionRepository(session_maker)
 
-    result = await repository.get_changing_users(2, 1)
+    result = await selection_repository.get_changing_users(2, 1)
 
     assert Counter(x.attendee for x in result) == Counter((42, 43, 45))
     assert tuple(x.speech.id for x in result) == (2, 2, 2)
@@ -143,9 +143,9 @@ async def test_save_notification_setting(session_maker: async_sessionmaker[Async
     if previous is not None:
         async with session_maker() as session, session.begin():
             session.add(Settings(user_id=42, notifications_enabled=previous))
-    repository = Repository(session_maker)
+    user_repository = UserRepository(session_maker)
 
-    await repository.save_notification_setting(42, True)
+    await user_repository.save_notification_setting(42, True)
 
     async with session_maker() as session:
         result = await session.scalars(select(Settings))
@@ -157,10 +157,10 @@ async def test_save_notification_setting(session_maker: async_sessionmaker[Async
 @pytest.mark.asyncio
 async def test_find_or_create_slots(session_maker: async_sessionmaker[AsyncSession], old_slots: list[TimeSlotDto],
                                     new_slot: TimeSlotDto):
-    repository = Repository(session_maker)
+    speech_repository = SpeechRepository(session_maker)
 
     async with session_maker() as session, session.begin():
-        slot_mapping = await repository.find_or_create_slots([*old_slots, new_slot], session)
+        slot_mapping = await speech_repository.find_or_create_slots([*old_slots, new_slot], session)
 
     assert slot_mapping[old_slots[0].date, old_slots[0].start_time, old_slots[0].end_time] == 1
     assert slot_mapping[old_slots[1].date, old_slots[1].start_time, old_slots[1].end_time] == 2
@@ -178,7 +178,7 @@ async def test_find_or_create_slots(session_maker: async_sessionmaker[AsyncSessi
 @pytest.mark.parametrize('location_new', [False, True])
 async def test_insert_or_update_speeches(session_maker: async_sessionmaker[AsyncSession], old_speeches: list[SpeechDto],
                                          location_new: bool):
-    repository = Repository(session_maker)
+    speech_repository = SpeechRepository(session_maker)
     updated_speech = dataclasses.replace(old_speeches[1], title='Updated Title', speaker='Updated Speaker')
     slot = dataclasses.replace(old_speeches[1].time_slot, id=2)
     updated_speech = dataclasses.replace(updated_speech, time_slot=slot)
@@ -189,7 +189,7 @@ async def test_insert_or_update_speeches(session_maker: async_sessionmaker[Async
         location = old_speeches[1].location
 
     async with session_maker() as session, session.begin():
-        await repository.update_or_insert_speeches([updated_speech], session)
+        await speech_repository.update_or_insert_speeches([updated_speech], session)
 
     async with session_maker() as session:
         result = await session.scalars(select(Speech).join(TimeSlot)
@@ -209,10 +209,10 @@ async def test_insert_or_update_speeches(session_maker: async_sessionmaker[Async
 
 @pytest.mark.asyncio
 async def test_delete_speeches(session_maker: async_sessionmaker[AsyncSession]):
-    repository = Repository(session_maker)
+    speech_repository = SpeechRepository(session_maker)
 
     async with session_maker() as session, session.begin():
-        await repository.delete_speeches([(1, 'B'), (2, 'A')], session)
+        await speech_repository.delete_speeches([(1, 'B'), (2, 'A')], session)
 
     async with session_maker() as session:
         result = await session.scalars(select(Speech))

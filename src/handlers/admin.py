@@ -12,7 +12,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, TelegramObject
 from sqlalchemy.exc import IntegrityError
 
-from data.repository import Repository
+from data.repository import SpeechRepository, UserRepository
 from dto import SpeechDto, TimeSlotDto
 
 
@@ -27,17 +27,17 @@ def get_router():
 
 async def check_rights_middleware(handler: Callable[[Message, dict[str, Any]], Awaitable[Any]],
                                   event: TelegramObject, data: dict[str, Any]):
-    repository: Repository = data['repository']
+    user_repository: UserRepository = data['user_repository']
     assert isinstance(event, Message)
     user = event.from_user
     assert user is not None
-    admin = await repository.is_admin(user.id)
+    admin = await user_repository.is_admin(user.id)
     if admin:
         return await handler(event, data)
     return None
 
 
-async def set_admin_handler(message: Message, repository: Repository):
+async def set_admin_handler(message: Message, user_repository: UserRepository):
     logger = logging.getLogger(__name__)
     text = message.text
     logger.debug('Processing admin command: %s', text)
@@ -56,11 +56,11 @@ async def set_admin_handler(message: Message, repository: Repository):
     identifier = command[1]
     if identifier.isdecimal():
         user_id = int(identifier)
-        await repository.set_admin(user_id, make_admin)
+        await user_repository.set_admin(user_id, make_admin)
         await message.answer(action_msg.format(user_id))
         logger.info(action_log, user_id)
     else:
-        success = await repository.set_admin_by_username(identifier, make_admin)
+        success = await user_repository.set_admin_by_username(identifier, make_admin)
         if success:
             await message.answer(action_msg.format(identifier))
             logger.info(action_log, identifier)
@@ -69,7 +69,7 @@ async def set_admin_handler(message: Message, repository: Repository):
             logger.info('User %s not found for admin privileges', identifier)
 
 
-async def modify_schedule_handler(message: Message, repository: Repository):
+async def modify_schedule_handler(message: Message, speech_repository: SpeechRepository):
     logger = logging.getLogger(__name__)
     file = message.document
     if file is None or not file.file_name or not file.file_name.endswith('.csv'):
@@ -91,17 +91,17 @@ async def modify_schedule_handler(message: Message, repository: Repository):
         await message.answer('Ошибка при обработке файла')
         return
     try:
-        async with repository.get_session() as session, session.begin():
-            slot_mapping = await repository.find_or_create_slots(slots, session)
+        async with speech_repository.get_session() as session, session.begin():
+            slot_mapping = await speech_repository.find_or_create_slots(slots, session)
             if deletes:
                 logger.info('Deleting %d speeches', len(deletes))
                 to_delete = ((slot_mapping[entry[0].date, entry[0].start_time, entry[0].end_time], entry[1])
                              for entry in deletes)
-                await repository.delete_speeches(to_delete, session)
+                await speech_repository.delete_speeches(to_delete, session)
             if speeches:
                 logger.info('Updating %d speeches', len(speeches))
                 speeches = _update_slots(speeches, slot_mapping)
-                await repository.update_or_insert_speeches(speeches, session)
+                await speech_repository.update_or_insert_speeches(speeches, session)
     except IntegrityError as e:
         logger.exception('Database integrity error')
         await message.answer(f'Ошибка при обновлении расписания: {e.orig}')

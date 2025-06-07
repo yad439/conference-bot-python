@@ -10,7 +10,7 @@ from aiogram.fsm.scene import Scene, SceneRegistry, on
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove, User
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
-from data.repository import Repository
+from data.repository import SelectionRepository, SpeechRepository
 from view import timetable
 
 if TYPE_CHECKING:
@@ -58,11 +58,11 @@ class EditIntentionScene(Scene, state='editIntention'):
         await message.answer('Какие записи вы хотите отредактировать?', reply_markup=keyboard.as_markup())
 
     @on.message(F.text)
-    async def on_message(self, message: Message, repository: Repository):
+    async def on_message(self, message: Message, speech_repository: SpeechRepository):
         self._logger.debug('User %s selected to edit %s', _format_user(message.from_user), message.text)
         match message.text:
             case Intention.ALL:
-                slots = await repository.get_all_slot_ids()
+                slots = await speech_repository.get_all_slot_ids()
                 await self.wizard.goto(EditingScene, slots=slots)
             case Intention.DAY:
                 await self.wizard.goto(SelectDayScene)
@@ -76,9 +76,9 @@ class SelectDayScene(Scene, state='selectDay'):
     _logger = logging.getLogger(__name__)
 
     @on.message.enter()
-    async def on_enter(self, message: Message, state: FSMContext, repository: Repository):
+    async def on_enter(self, message: Message, state: FSMContext, speech_repository: SpeechRepository):
         self._logger.debug('User %s started selecting day', _format_user(message.from_user))
-        days = await repository.get_all_dates()
+        days = await speech_repository.get_all_dates()
         keyboard = ReplyKeyboardBuilder()
         for day in days:
             keyboard.button(text=day.strftime('%d.%m'))
@@ -88,7 +88,7 @@ class SelectDayScene(Scene, state='selectDay'):
         await message.answer(answer, reply_markup=keyboard.as_markup())
 
     @on.message(F.text)
-    async def on_message(self, message: Message, state: FSMContext, repository: Repository):
+    async def on_message(self, message: Message, state: FSMContext, speech_repository: SpeechRepository):
         self._logger.debug('User %s selected day %s', _format_user(message.from_user), message.text)
         text = message.text
         assert text is not None
@@ -99,7 +99,7 @@ class SelectDayScene(Scene, state='selectDay'):
             await message.answer('Выберете из доступных дней')
             return
         date = days[text]
-        slots = await repository.get_slot_ids_on_day(date)
+        slots = await speech_repository.get_slot_ids_on_day(date)
         await self.wizard.goto(EditingScene, slots=slots)
 
 
@@ -107,9 +107,9 @@ class SelectSingleScene(Scene, state='selectSingle'):
     _logger = logging.getLogger(__name__)
 
     @on.message.enter()
-    async def on_enter(self, message: Message, state: FSMContext, repository: Repository):
+    async def on_enter(self, message: Message, state: FSMContext, speech_repository: SpeechRepository):
         self._logger.debug('User %s started selecting single slot', _format_user(message.from_user))
-        slots = await repository.get_all_slots()
+        slots = await speech_repository.get_all_slots()
         slot_mapping: list[int] = []
         result = StringIO()
         result.write('Выберете номер слота:\n')
@@ -146,13 +146,14 @@ class EditingScene(Scene, state='editing'):
     _logger = logging.getLogger(__name__)
 
     @on.message.enter()
-    async def on_enter(self, message: Message, state: FSMContext, repository: Repository, slots: list[int]):
+    async def on_enter(self, message: Message, state: FSMContext, speech_repository: SpeechRepository,
+                       slots: list[int]):
         self._logger.debug('User %s editing schedule: slots remaining %s', _format_user(message.from_user), slots)
         if not slots:
             await message.answer('Готово', reply_markup=ReplyKeyboardRemove())
             await self.wizard.exit()
             return
-        slot, options = await repository.get_in_time_slot(slots[0])
+        slot, options = await speech_repository.get_in_time_slot(slots[0])
         slot_string = timetable.make_slot_string(slot, with_day=True)
         answer = 'Возможные варианты:\n' + \
             '\n'.join(timetable.make_entry_string(it, timetable.EntryFormat.PLACE_ONLY)
@@ -170,12 +171,12 @@ class EditingScene(Scene, state='editing'):
         await message.answer(answer, reply_markup=inline_keyboard.as_markup())
 
     @on.callback_query.enter()
-    async def on_query_enter(self, callback: CallbackQuery, state: FSMContext, repository: Repository,
+    async def on_query_enter(self, callback: CallbackQuery, state: FSMContext, speech_repository: SpeechRepository,
                              slots: list[int]):
         self._logger.debug('User %s editing schedule: slots remaining %s', _format_user(callback.from_user), slots)
         message = callback.message
         if isinstance(message, Message):
-            await self.on_enter(message, state, repository, slots)
+            await self.on_enter(message, state, speech_repository, slots)
             await callback.answer()
         else:
             self._logger.warning('User %s tried to edit schedule, but message is not a Message, but %s',
@@ -184,21 +185,21 @@ class EditingScene(Scene, state='editing'):
             await self.wizard.exit()
 
     @on.message(F.text == NOTHING_OPTION)
-    async def on_nothing(self, message: Message, state: FSMContext, repository: Repository):
+    async def on_nothing(self, message: Message, state: FSMContext, selection_repository: SelectionRepository):
         slots: list[int] | None = await state.get_value('slots')
         assert slots is not None
         user = message.from_user
         assert user is not None
         self._logger.debug('User %s selected nothing for slot %d', _format_user(user), slots[0])
-        await repository.save_selection(user.id, slots[0], None)
+        await selection_repository.save_selection(user.id, slots[0], None)
         slots.pop(0)
         await self.wizard.retake(slots=slots)
 
     @on.message(F.text)
-    async def on_message(self, message: Message, state: FSMContext, repository: Repository):
+    async def on_message(self, message: Message, state: FSMContext, selection_repository: SelectionRepository):
         location = message.text
         if location == NOTHING_OPTION:
-            await self.on_nothing(message, state, repository)
+            await self.on_nothing(message, state, selection_repository)
             return
         if location == 'Отмена':
             self._logger.debug('User %s cancelled editing', _format_user(message.from_user))
@@ -220,26 +221,27 @@ class EditingScene(Scene, state='editing'):
         else:
             await message.answer('Такой локации нет, повторите, пожалуйста')
             return
-        await repository.save_selection(user.id, slots[0], selection)
+        await selection_repository.save_selection(user.id, slots[0], selection)
         slots.pop(0)
         await self.wizard.retake(slots=slots)
 
     @on.callback_query(F.data.startswith('select#'))
-    async def on_query(self, callback: CallbackQuery, state: FSMContext, repository: Repository):
+    async def on_query(self, callback: CallbackQuery, state: FSMContext, selection_repository: SelectionRepository):
         self._logger.debug('User %s selected location from inline keyboard', _format_user(callback.from_user))
-        slot = await handle_selection_query(callback, repository)
+        slot = await handle_selection_query(callback, selection_repository)
         slots: list[int] | None = await state.get_value('slots')
         assert slots is not None
         if slots[0] == slot:
             slots.pop(0)
             await self.wizard.retake(slots=slots)
 
+    @staticmethod
     @on.message()
-    async def on_unknown(self, message: Message):
+    async def on_unknown(message: Message):
         await message.answer('Выберете значение из списка')
 
 
-async def handle_selection_query(callback: CallbackQuery, repository: Repository):
+async def handle_selection_query(callback: CallbackQuery, selection_repository: SelectionRepository):
     query = callback.data
     assert query is not None
     data = query.split('#')
@@ -250,6 +252,6 @@ async def handle_selection_query(callback: CallbackQuery, repository: Repository
     user = callback.from_user
     assert user is not None
     logging.getLogger(__name__).debug('User %s selected speech %s for slot %d', _format_user(user), selection, slot)
-    await repository.save_selection(user.id, slot, selection)
+    await selection_repository.save_selection(user.id, slot, selection)
     await callback.answer('Сохранено')
     return slot

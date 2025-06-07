@@ -4,28 +4,38 @@ import pytest
 import pytest_asyncio
 from freezegun import freeze_time
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 import data.mock_data
 import data.setup
-from data.repository import Repository
+from data.repository import SpeechRepository, UserRepository
 from data.tables import Settings
 from handlers import general
 from tests.fake_bot import BotFake
 
 
 @pytest_asyncio.fixture  # type: ignore
-async def repository():
+async def session_maker():
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(engine)
     await data.setup.create_tables(engine)
     await data.mock_data.fill_tables(session_maker)
-    return Repository(session_maker)
+    return session_maker
 
 
 @pytest.fixture
-def bot(repository: Repository):
-    bot = BotFake(repository=repository)
+def speech_repository(session_maker: async_sessionmaker[AsyncSession]):
+    return SpeechRepository(session_maker)
+
+
+@pytest.fixture
+def user_repository(session_maker: async_sessionmaker[AsyncSession]):
+    return UserRepository(session_maker)
+
+
+@pytest.fixture
+def bot(speech_repository: SpeechRepository, user_repository: UserRepository):
+    bot = BotFake(speech_repository=speech_repository, user_repository=user_repository)
     bot.router.include_router(general.get_router())
     return bot
 
@@ -118,9 +128,9 @@ async def test_schedule_empty(bot: BotFake, query: str):
 @pytest.mark.asyncio
 @pytest.mark.parametrize('present', [True, False])
 @pytest.mark.parametrize('state', ['not present', 'registered', 'without username'])
-async def test_register(bot: BotFake, repository: Repository, present: bool, state: str):
+async def test_register(bot: BotFake, session_maker: async_sessionmaker[AsyncSession], present: bool, state: str):
     if state != 'not present':
-        async with repository.get_session() as session, session.begin():
+        async with session_maker() as session, session.begin():
             session.add(Settings(user_id=42, username='testUser') if present else Settings(user_id=42))
 
     await bot.message('/register', username='testUser' if present else None)
@@ -128,7 +138,7 @@ async def test_register(bot: BotFake, repository: Repository, present: bool, sta
     assert len(bot.sent_messages) == 1
     assert ('Успех' if present else 'не задано') in bot.sent_messages[0]
     if present:
-        async with repository.get_session() as session:
+        async with session_maker() as session:
             result = await session.scalars(select(Settings))
             setting = result.one()
             assert setting.user_id == 42

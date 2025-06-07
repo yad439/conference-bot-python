@@ -6,31 +6,31 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 
 import view
 import view.notifications
-from data.repository import Repository
+from data.repository import UserRepository
 
 
-async def handle_show_settings(message: Message, repository: Repository):
+async def handle_show_settings(message: Message, user_repository: UserRepository):
     user = message.from_user
     assert user is not None
-    notifications = await repository.get_notification_setting(user.id)
+    notifications = await user_repository.get_notification_setting(user.id)
     if notifications is None:
         notifications = True
     answer = view.notifications.render_settings(notifications)
     await message.answer(answer, reply_markup=_build_settings_keyboard())
 
 
-async def handle_set_setting(callback: CallbackQuery, repository: Repository):
+async def handle_set_setting(callback: CallbackQuery, user_repository: UserRepository):
     logger = logging.getLogger(__name__)
     query = callback.data
     match query:
         case 'set_notifications_on':
             logger.info('User %d enabled notifications', callback.from_user.id)
-            await repository.save_notification_setting(callback.from_user.id, True)
+            await user_repository.save_notification_setting(callback.from_user.id, True)
             await callback.answer('Уведомления включены')
             enabled = True
         case 'set_notifications_off':
             logger.info('User %d disabled notifications', callback.from_user.id)
-            await repository.save_notification_setting(callback.from_user.id, False)
+            await user_repository.save_notification_setting(callback.from_user.id, False)
             await callback.answer('Уведомления выключены')
             enabled = False
         case _:

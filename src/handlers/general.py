@@ -10,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InaccessibleMessage, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
-from data.repository import Repository
+from data.repository import SpeechRepository, UserRepository
 from view import timetable
 
 
@@ -39,7 +39,7 @@ async def handle_schedule(message: Message):
     return await message.answer('Какую часть расписания хотите просмотреть?', reply_markup=keyboard.as_markup())
 
 
-async def handle_schedule_selection(callback: CallbackQuery, repository: Repository):
+async def handle_schedule_selection(callback: CallbackQuery, speech_repository: SpeechRepository):
     message = callback.message
     if message is None or isinstance(message, InaccessibleMessage):
         await callback.answer('Сообщение устарело')
@@ -57,7 +57,7 @@ async def handle_schedule_selection(callback: CallbackQuery, repository: Reposit
             logging.getLogger(__name__).error('Received unknown general command %s', query)
             await callback.answer('Что-то пошло не так')
             return
-    speeches = await repository.get_all_speeches(date)
+    speeches = await speech_repository.get_all_speeches(date)
     await callback.answer()
     if not speeches:
         await message.answer('Ничего не найдено')
@@ -67,12 +67,12 @@ async def handle_schedule_selection(callback: CallbackQuery, repository: Reposit
         await message.answer(timetable.render_timetable(days, date is None))
 
 
-async def handle_register(message: Message, repository: Repository):
+async def handle_register(message: Message, user_repository: UserRepository):
     user = message.from_user
     assert user is not None
     username = user.username
     if username is not None:
-        await repository.register_user(user.id, username)
+        await user_repository.register_user(user.id, username)
         await message.answer('Успех')
     else:
         await message.answer('Имя пользователя не задано')

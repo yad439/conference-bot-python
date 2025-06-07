@@ -8,17 +8,17 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 import data.mock_data
 import data.setup
-from data.repository import Repository
+from data.repository import SpeechRepository
 from handlers import general
 
 
 @pytest_asyncio.fixture  # type: ignore
-async def repository():
+async def speech_repository():
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(engine)
     await data.setup.create_tables(engine)
     await data.mock_data.fill_tables(session_maker)
-    return Repository(session_maker)
+    return SpeechRepository(session_maker)
 
 
 @pytest.mark.asyncio
@@ -43,10 +43,10 @@ async def test_handle_personal_view():
 
 
 @pytest.mark.asyncio
-async def test_schedule_all(repository: Repository):
+async def test_schedule_all(speech_repository: SpeechRepository):
     callback = AsyncMock(data='show_general_all')
 
-    await general.handle_schedule_selection(callback, repository)
+    await general.handle_schedule_selection(callback, speech_repository)
 
     callback.answer.assert_awaited_once()
     callback.message.answer.assert_awaited_once()
@@ -59,10 +59,10 @@ async def test_schedule_all(repository: Repository):
 
 @pytest.mark.asyncio
 @freeze_time('2025-06-01')
-async def test_schedule_today(repository: Repository):
+async def test_schedule_today(speech_repository: SpeechRepository):
     callback = AsyncMock(data='show_general_today')
 
-    await general.handle_schedule_selection(callback, repository)
+    await general.handle_schedule_selection(callback, speech_repository)
 
     callback.answer.assert_awaited_once()
     callback.message.answer.assert_awaited_once()
@@ -76,10 +76,10 @@ async def test_schedule_today(repository: Repository):
 
 @pytest.mark.asyncio
 @freeze_time('2025-06-01')
-async def test_schedule_tomorrow(repository: Repository):
+async def test_schedule_tomorrow(speech_repository: SpeechRepository):
     callback = AsyncMock(data='show_general_tomorrow')
 
-    await general.handle_schedule_selection(callback, repository)
+    await general.handle_schedule_selection(callback, speech_repository)
 
     callback.answer.assert_awaited_once()
     callback.message.answer.assert_awaited_once()
@@ -95,10 +95,10 @@ async def test_schedule_tomorrow(repository: Repository):
 @pytest.mark.asyncio
 @freeze_time('2025-05-01')
 @pytest.mark.parametrize('query', ['show_general_today', 'show_general_tomorrow'])
-async def test_schedule_empty(repository: Repository, query: str):
+async def test_schedule_empty(speech_repository: SpeechRepository, query: str):
     callback = AsyncMock(data=query)
 
-    await general.handle_schedule_selection(callback, repository)
+    await general.handle_schedule_selection(callback, speech_repository)
 
     callback.answer.assert_awaited_once()
     callback.message.answer.assert_awaited_once()
@@ -107,19 +107,19 @@ async def test_schedule_empty(repository: Repository, query: str):
 
 
 @pytest.mark.asyncio
-async def test_handle_personal_view_inaccessible(repository: Repository):
+async def test_handle_personal_view_inaccessible(speech_repository: SpeechRepository):
     callback = AsyncMock(data='show_personal_all')
     callback.message = InaccessibleMessage(
         chat=Chat(id=1, type=''), message_id=21)
-    await general.handle_schedule_selection(callback, repository)
+    await general.handle_schedule_selection(callback, speech_repository)
     callback.answer.assert_awaited_once()
     args = callback.answer.await_args.args
     assert 'устарело' in args[0]
 
 
 @pytest.mark.asyncio
-async def test_handle_personal_view_wrong(repository: Repository, caplog: pytest.LogCaptureFixture):
+async def test_handle_personal_view_wrong(speech_repository: SpeechRepository, caplog: pytest.LogCaptureFixture):
     callback = AsyncMock(data='asdf')
-    await general.handle_schedule_selection(callback, repository)
+    await general.handle_schedule_selection(callback, speech_repository)
     assert 'Received unknown general command asdf' in caplog.text
     callback.answer.assert_awaited_once_with('Что-то пошло не так')

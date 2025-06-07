@@ -12,7 +12,7 @@ import handlers.middleware
 import handlers.personal_edit
 import handlers.personal_view
 import handlers.settings
-from data.repository import Repository
+from data.repository import SelectionRepository, SpeechRepository, UserRepository
 from notifications import event_start
 
 
@@ -27,10 +27,14 @@ async def main():
     session_maker = async_sessionmaker(engine)
     await data.setup.create_tables(engine)
     await data.mock_data.fill_tables(session_maker)
-    repository = Repository(session_maker)
+
+    speech_repository = SpeechRepository(session_maker)
+    selection_repository = SelectionRepository(session_maker)
+    user_repository = UserRepository(session_maker)
 
     bot = Bot(token)
-    dispatcher = Dispatcher(repository=repository)
+    dispatcher = Dispatcher(speech_repository=speech_repository, selection_repository=selection_repository,
+                            user_repository=user_repository)
     dispatcher.include_router(handlers.general.get_router())
     dispatcher.include_router(handlers.personal_view.get_router())
     dispatcher.include_router(handlers.settings.get_router())
@@ -38,7 +42,8 @@ async def main():
     handlers.middleware.init_middleware(dispatcher)
 
     scheduler = AsyncIOScheduler()
-    await event_start.configure_events(scheduler, repository, bot, 5)
+    await event_start.configure_events(scheduler, speech_repository, selection_repository,
+                                       bot, 5)
     scheduler.start()
 
     logger.info('Starting polling')

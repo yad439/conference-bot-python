@@ -8,7 +8,7 @@ from aiogram.filters import Command
 from aiogram.types import CallbackQuery, InaccessibleMessage, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from data.repository import Repository
+from data.repository import SelectionRepository
 from view import timetable
 
 
@@ -20,7 +20,7 @@ async def handle_personal_view(message: Message):
     await message.answer('Какую часть расписания хотите просмотреть?', reply_markup=keyboard.as_markup())
 
 
-async def handle_personal_view_selection(callback: CallbackQuery, repository: Repository):
+async def handle_personal_view_selection(callback: CallbackQuery, selection_repository: SelectionRepository):
     message = callback.message
     if message is None or isinstance(message, InaccessibleMessage):
         await callback.answer('Сообщение устарело')
@@ -38,7 +38,7 @@ async def handle_personal_view_selection(callback: CallbackQuery, repository: Re
             logging.getLogger(__name__).error('Received unknown personal command %s', query)
             await callback.answer('Что-то пошло не так')
             return
-    speeches = await repository.get_selected_speeches(callback.from_user.id, date)
+    speeches = await selection_repository.get_selected_speeches(callback.from_user.id, date)
     await callback.answer()
     if not speeches:
         await message.answer('Вы не выбрали ни одной записи')

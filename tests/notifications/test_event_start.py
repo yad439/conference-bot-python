@@ -8,17 +8,17 @@ import pytest
 import pytest_asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore
 from freezegun import freeze_time
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 import data.mock_data
 import data.setup
-from data.repository import Repository
+from data.repository import SelectionRepository, SpeechRepository
 from data.tables import Selection, Settings
 from notifications import event_start
 
 
-@pytest_asyncio.fixture  # type: ignore
-async def repository():
+@pytest_asyncio.fixture
+async def session_maker():
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(engine)
     await data.setup.create_tables(engine)
@@ -36,14 +36,23 @@ async def repository():
                          Selection(attendee=46, time_slot_id=2, speech_id=2)))
         session.add_all((Settings(user_id=45, notifications_enabled=True),
                          Settings(user_id=46, notifications_enabled=False)))
-    return Repository(session_maker)
+    return session_maker
+
+
+@pytest.fixture
+def speech_repository(session_maker: async_sessionmaker[AsyncSession]):
+    return SpeechRepository(session_maker)
+
+
+@pytest.fixture
+def selection_repository(session_maker: async_sessionmaker[AsyncSession]):
+    return SelectionRepository(session_maker)
 
 
 @pytest.mark.asyncio
-async def test_notify_first(repository: Repository):
+async def test_notify_first(selection_repository: SelectionRepository):
     bot = AsyncMock()
-
-    await event_start.notify_first(bot, repository, 1, 5)
+    await event_start.notify_first(bot, selection_repository, 1, 5)
 
     expected_calls_first_event = (
         call(41, 'Через 5 минут начинается доклад "About something" (A)'),
@@ -56,10 +65,9 @@ async def test_notify_first(repository: Repository):
 
 
 @pytest.mark.asyncio
-async def test_notify_change_location(repository: Repository):
+async def test_notify_change_location(selection_repository: SelectionRepository):
     bot = AsyncMock()
-
-    await event_start.notify_change_location(bot, repository, 2, 1, 5)
+    await event_start.notify_change_location(bot, selection_repository, 2, 1, 5)
 
     args = (
         call(42, 'Через 5 минут начинается доклад "About something else" (A)'),
@@ -71,7 +79,7 @@ async def test_notify_change_location(repository: Repository):
 
 
 @pytest.mark.asyncio
-async def test_configure(repository: Repository):
+async def test_configure(speech_repository: SpeechRepository, selection_repository: SelectionRepository):
     bot = AsyncMock()
     scheduler = AsyncIOScheduler()
     semaphore = asyncio.Semaphore(0)
@@ -81,7 +89,7 @@ async def test_configure(repository: Repository):
     bot.send_message.side_effect = release_semaphore
 
     with freeze_time('2025-06-01 08:54:00', -7, tick=True) as frozen_time:
-        await event_start.configure_events(scheduler, repository, bot, 5)
+        await event_start.configure_events(scheduler, speech_repository, selection_repository, bot, 5)
         scheduler.start()
 
         bot.send_message.assert_not_called()
