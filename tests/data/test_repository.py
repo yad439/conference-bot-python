@@ -162,10 +162,10 @@ async def test_find_or_create_slots(session_maker: async_sessionmaker[AsyncSessi
     async with session_maker() as session, session.begin():
         slot_mapping = await speech_repository.find_or_create_slots([*old_slots, new_slot], session)
 
-    assert slot_mapping[old_slots[0].date, old_slots[0].start_time, old_slots[0].end_time] == 1
-    assert slot_mapping[old_slots[1].date, old_slots[1].start_time, old_slots[1].end_time] == 2
-    assert slot_mapping[old_slots[2].date, old_slots[2].start_time, old_slots[2].end_time] == 3
-    assert slot_mapping[new_slot.date, new_slot.start_time, new_slot.end_time] == 4
+    assert slot_mapping[old_slots[0].date, old_slots[0].start_time, old_slots[0].end_time].id == 1
+    assert slot_mapping[old_slots[1].date, old_slots[1].start_time, old_slots[1].end_time].id == 2
+    assert slot_mapping[old_slots[2].date, old_slots[2].start_time, old_slots[2].end_time].id == 3
+    assert slot_mapping[new_slot.date, new_slot.start_time, new_slot.end_time].id == 4
     async with session_maker() as session:
         result = await session.scalar(select(TimeSlot).where(TimeSlot.id == 4))
         assert result is not None

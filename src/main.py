@@ -1,5 +1,6 @@
 import logging
 import os
+from collections.abc import Iterable
 
 from aiogram import Bot, Dispatcher
 from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore
@@ -13,7 +14,8 @@ import handlers.personal_edit
 import handlers.personal_view
 import handlers.settings
 from data.repository import SelectionRepository, SpeechRepository, UserRepository
-from notifications import event_start
+from dto import TimeSlotDto
+from notifications import changed, event_start
 
 
 async def main():
@@ -42,12 +44,19 @@ async def main():
     handlers.middleware.init_middleware(dispatcher)
 
     scheduler = AsyncIOScheduler()
-    await event_start.configure_events(scheduler, speech_repository, selection_repository,
-                                       bot, 5)
+
+    def scheduler_callback():
+        return event_start.configure_events(scheduler, speech_repository, selection_repository,
+                                            bot, 5)
+    await scheduler_callback()
     scheduler.start()
 
+    async def change_callback(slots: Iterable[TimeSlotDto]):
+        await scheduler_callback()
+        await changed.notify_schedule_change(bot, selection_repository, slots)
+
     logger.info('Starting polling')
-    await dispatcher.start_polling(bot)  # type: ignore
+    await dispatcher.start_polling(bot, schedule_update_callback=change_callback)  # type: ignore
 
 if __name__ == '__main__':
     import asyncio

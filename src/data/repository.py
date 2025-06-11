@@ -77,7 +77,7 @@ class SpeechRepository:
         statement = (select(TimeSlot)
                      .where(tuple_(TimeSlot.date, TimeSlot.start_time, TimeSlot.end_time).in_(slot_descriptors)))
         result = await session.scalars(statement)
-        mapping = {self._time_tuple(slot): slot.id for slot in result}
+        mapping = {self._time_tuple(slot): self._map_slot_to_dto(slot) for slot in result}
         not_found = (slot for slot in slots if (slot.date, slot.start_time, slot.end_time) not in mapping)
         entities = [self._map_slot_from_dto(slot) for slot in not_found]
         if entities:
@@ -85,7 +85,7 @@ class SpeechRepository:
             session.add_all(entities)
             await session.flush()
             for slot in entities:
-                mapping[self._time_tuple(slot)] = slot.id
+                mapping[self._time_tuple(slot)] = self._map_slot_to_dto(slot)
         return mapping
 
     async def update_or_insert_speeches(self, speeches: Collection[SpeechDto], session: AsyncSession):
@@ -237,6 +237,13 @@ class SelectionRepository:
         async with self._factory() as session:
             result = await session.scalars(query)
             return [self._selection_mapper.map(row, fields_mapping={'speech.time_slot': dummy_slot}) for row in result]
+
+    async def get_user_ids_that_selected(self, slot_ids: Iterable[int]):
+        query = (select(Selection.attendee, Selection.time_slot_id).where(Selection.time_slot_id.in_(slot_ids))
+                 .order_by(Selection.attendee))
+        async with self._factory() as session:
+            result = await session.execute(query)
+            return result.tuples().all()
 
 
 def _update_speeches_slot_timezone(speeches: Iterable[Speech], timezone: datetime.tzinfo):

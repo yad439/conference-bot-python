@@ -1,7 +1,7 @@
 import dataclasses
 import datetime
 import logging
-from collections.abc import Awaitable, Callable, Iterable, Mapping
+from collections.abc import Awaitable, Callable, Generator, Iterable, Mapping
 from csv import DictReader
 from io import TextIOWrapper
 from typing import Any, TextIO
@@ -14,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 
 from data.repository import SpeechRepository, UserRepository
 from dto import SpeechDto, TimeSlotDto
+from utility import cast_not_none
 
 
 def get_router():
@@ -69,7 +70,8 @@ async def set_admin_handler(message: Message, user_repository: UserRepository):
             logger.info('User %s not found for admin privileges', identifier)
 
 
-async def modify_schedule_handler(message: Message, speech_repository: SpeechRepository):
+async def modify_schedule_handler(message: Message, speech_repository: SpeechRepository,
+                                  schedule_update_callback: Callable[[Iterable[TimeSlotDto]], Awaitable[Any]]):
     logger = logging.getLogger(__name__)
     file = message.document
     if file is None or not file.file_name or not file.file_name.endswith('.csv'):
@@ -95,8 +97,10 @@ async def modify_schedule_handler(message: Message, speech_repository: SpeechRep
             slot_mapping = await speech_repository.find_or_create_slots(slots, session)
             if deletes:
                 logger.info('Deleting %d speeches', len(deletes))
-                to_delete = ((slot_mapping[entry[0].date, entry[0].start_time, entry[0].end_time], entry[1])
-                             for entry in deletes)
+                to_delete: Generator[tuple[int, str]] = (
+                    (cast_not_none(slot_mapping[entry[0].date, entry[0].start_time, entry[0].end_time].id),
+                     entry[1])
+                    for entry in deletes)
                 await speech_repository.delete_speeches(to_delete, session)
             if speeches:
                 logger.info('Updating %d speeches', len(speeches))
@@ -108,6 +112,7 @@ async def modify_schedule_handler(message: Message, speech_repository: SpeechRep
         return
     await message.answer('Расписание обновлено')
     logger.info('Schedule updated with %d speeches and %d deletes', len(speeches), len(deletes))
+    await schedule_update_callback(slot_mapping.values())
 
 
 def _parse_csv(data: TextIO):
@@ -141,9 +146,8 @@ def _parse_time(time_str: str, timezone: datetime.tzinfo):
 
 
 def _update_slots(speeches: Iterable[SpeechDto],
-                  slot_mapping: Mapping[tuple[datetime.date, datetime.time, datetime.time], int]):
+                  slot_mapping: Mapping[tuple[datetime.date, datetime.time, datetime.time], TimeSlotDto]):
     slots = frozenset(speech.time_slot for speech in speeches)
-    mapping = {old_slot: dataclasses.replace(
-        old_slot, id=slot_mapping[old_slot.date, old_slot.start_time, old_slot.end_time]) for old_slot in slots}
+    mapping = {old_slot: slot_mapping[old_slot.date, old_slot.start_time, old_slot.end_time] for old_slot in slots}
     return [dataclasses.replace(speech, time_slot=mapping[speech.time_slot])
             for speech in speeches]

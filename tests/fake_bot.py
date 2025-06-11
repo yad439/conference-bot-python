@@ -47,6 +47,8 @@ class BotFake:
         self._data = kwargs
         self._data['bot'] = self
         self._data['state'] = self._state
+        async def nop(*_: Any): pass  # Do nothing by default
+        self._data['schedule_update_callback'] = nop
 
     @property
     def bot(self):

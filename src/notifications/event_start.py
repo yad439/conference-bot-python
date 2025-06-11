@@ -12,6 +12,7 @@ from view import notifications
 async def configure_events(scheduler: BaseScheduler, speech_repository: SpeechRepository,
                            selection_repository: SelectionRepository, bot: Bot, minutes_before_start: int):
     slots = await speech_repository.get_all_slots()
+    scheduler.remove_all_jobs()  # pyright: ignore[reportUnknownMemberType]
     for date, day_slots in itertools.groupby(slots, key=lambda slot: slot.date):
         prev_slot = next(day_slots)
         prev_id = prev_slot.id

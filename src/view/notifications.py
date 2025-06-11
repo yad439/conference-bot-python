@@ -1,4 +1,7 @@
-from dto import SpeechDto
+from collections.abc import Iterable
+
+from dto import SpeechDto, TimeSlotDto
+from view import timetable
 
 
 def render_starting(speech: SpeechDto, time_to_start: int):
@@ -6,4 +9,9 @@ def render_starting(speech: SpeechDto, time_to_start: int):
 
 
 def render_settings(enabled: bool):
-    return f'Текущие настройки:\nУведомления {"включены" if enabled else "выключены"}'
+    return f'Текущие настройки:\nУведомления {'включены' if enabled else 'выключены'}'
+
+
+def render_changed(time_slots: Iterable[TimeSlotDto]):
+    slot_strings = (timetable.make_slot_string(slot) for slot in time_slots)
+    return 'Поменялось расписание для следующих слотов:\n' + '\n'.join(slot_strings) + '\nПроверьте ваш выбор'
