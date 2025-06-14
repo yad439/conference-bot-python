@@ -1,8 +1,13 @@
 import logging
 import os
-from collections.abc import Iterable
+import secrets
+from collections.abc import Awaitable, Callable, Iterable
+from typing import Any
 
 from aiogram import Bot, Dispatcher
+from aiogram.types import FSInputFile
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+from aiohttp import web
 from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -55,8 +60,44 @@ async def main():
         await scheduler_callback()
         await changed.notify_schedule_change(bot, selection_repository, slots)
 
-    logger.info('Starting polling')
-    await dispatcher.start_polling(bot, schedule_update_callback=change_callback)  # type: ignore
+    webhook_url = os.getenv('WEBHOOK_URL')
+    if webhook_url:
+        await run_webhook(bot, dispatcher, change_callback, webhook_url)
+    else:
+        logger.info('Starting polling')
+        await dispatcher.start_polling(bot, schedule_update_callback=change_callback)  # type: ignore
+
+
+async def run_webhook(bot: Bot, dispatcher: Dispatcher,
+                      change_callback: Callable[[Iterable[TimeSlotDto]], Awaitable[Any]], webhook_url: str):
+    logger = logging.getLogger(__name__)
+    logger.info('Setting up webhook on %s', webhook_url)
+    webhook_host = os.getenv('WEBHOOK_HOST', '127.0.0.1')
+    webhook_port = int(os.getenv('WEBHOOK_PORT', '8080'))
+    webhook_path = os.getenv('WEBHOOK_PATH', '/webhook')
+    webhook_secret = secrets.token_urlsafe(64)
+    handler = SimpleRequestHandler(dispatcher, bot, secret_token=webhook_secret,
+                                   schedule_update_callback=change_callback)
+    app = web.Application()
+    handler.register(app, path=webhook_path)
+    setup_application(app, dispatcher)
+    certificate_path = os.getenv('WEBHOOK_CERT')
+    certificate_file = FSInputFile(certificate_path) if certificate_path else None
+    await bot.set_webhook(webhook_url + webhook_path, certificate_file, secret_token=webhook_secret)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, webhook_host, webhook_port)
+    await site.start()
+    logger.info('Webhook server started')
+    try:
+        await asyncio.Future()
+    except KeyboardInterrupt:
+        logger.info('Stopping webhook server')
+    finally:
+        await site.stop()
+        await runner.cleanup()
+        await bot.delete_webhook()
+
 
 if __name__ == '__main__':
     import asyncio
