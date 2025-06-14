@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import secrets
@@ -100,5 +101,4 @@ async def run_webhook(bot: Bot, dispatcher: Dispatcher,
 
 
 if __name__ == '__main__':
-    import asyncio
     asyncio.run(main())
