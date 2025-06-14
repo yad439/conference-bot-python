@@ -92,7 +92,7 @@ async def run_webhook(bot: Bot, dispatcher: Dispatcher,
     logger.info('Webhook server started')
     try:
         await asyncio.Future()
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, asyncio.CancelledError):
         logger.info('Stopping webhook server')
     finally:
         await site.stop()
