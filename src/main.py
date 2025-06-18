@@ -1,8 +1,12 @@
 import asyncio
 import logging
+import logging.config
 import os
 import secrets
 from collections.abc import Awaitable, Callable, Iterable
+from logging.handlers import QueueHandler, QueueListener
+from pathlib import Path
+from queue import SimpleQueue
 from typing import Any
 
 from aiogram import Bot, Dispatcher
@@ -24,17 +28,34 @@ from dto import TimeSlotDto
 from notifications import changed, event_start
 
 
+def configure_async_logging():
+    root_logger = logging.getLogger()
+    root_handlers = root_logger.handlers.copy()
+    root_logger.handlers.clear()
+    queue: SimpleQueue[Any] = SimpleQueue()
+    root_logger.addHandler(QueueHandler(queue))
+    listener = QueueListener(queue, *root_handlers)
+    listener.start()
+    return listener
+
+
 async def main():
-    logging.basicConfig(level=logging.DEBUG)
+    log_config_path = Path(os.getenv('LOG_CONFIG', 'logging.ini'))
+    if log_config_path.exists():
+        logging.config.fileConfig(log_config_path)
+    else:
+        logging.basicConfig(level=logging.DEBUG)
     token = os.getenv('TELEGRAM_TOKEN')
     logger = logging.getLogger(__name__)
     if token is None:
         logger.critical('Token environment variable not found')
         return
-    engine = create_async_engine('sqlite+aiosqlite:///:memory:')
+    listener = configure_async_logging()
+    engine = create_async_engine(os.getenv('DATABASE_URL', 'sqlite+aiosqlite:///:memory:'))
     session_maker = async_sessionmaker(engine)
     await data.setup.create_tables(engine)
-    await data.mock_data.fill_tables(session_maker)
+    if os.getenv('FILL_MOCK_DATA') == '1':
+        await data.mock_data.fill_tables(session_maker)
 
     speech_repository = SpeechRepository(session_maker)
     selection_repository = SelectionRepository(session_maker)
@@ -67,6 +88,7 @@ async def main():
     else:
         logger.info('Starting polling')
         await dispatcher.start_polling(bot, schedule_update_callback=change_callback)  # type: ignore
+    listener.stop()
 
 
 async def run_webhook(bot: Bot, dispatcher: Dispatcher,
