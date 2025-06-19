@@ -12,7 +12,7 @@ class Base(DeclarativeBase):
 
 class TimeSlot(Base):
     __tablename__ = 'time_slots'
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
     date: Mapped[datetime.date]
     start_time: Mapped[datetime.time]
     end_time: Mapped[datetime.time]
@@ -20,7 +20,7 @@ class TimeSlot(Base):
 
 class Speech(Base):
     __tablename__ = 'speeches'
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
     title: Mapped[str]
     speaker: Mapped[str]
     time_slot_id: Mapped[int] = mapped_column(ForeignKey('time_slots.id'))

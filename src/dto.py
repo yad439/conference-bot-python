@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class TimeSlotDto:
-    id: int | None
+    id: int | None  # noqa: A003
     date: datetime.date
     start_time: datetime.time
     end_time: datetime.time
@@ -12,7 +12,7 @@ class TimeSlotDto:
 
 @dataclass
 class SpeechDto:
-    id: int | None
+    id: int | None  # noqa: A003
     title: str
     speaker: str
     time_slot: TimeSlotDto
