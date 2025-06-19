@@ -1,13 +1,7 @@
 {
 	"name": "Python 3",
 	"image": "mcr.microsoft.com/devcontainers/python:1-3-bookworm",
-	"features": {
-		"ghcr.io/devcontainers-extra/features/flake8:latest": {},
-		"ghcr.io/devcontainers-extra/features/mypy:latest": {},
-		"ghcr.io/devcontainers-extra/features/pylint:latest": {},
-		"ghcr.io/devcontainers-extra/features/ruff:latest": {}
-	},
-	"postCreateCommand": "pip3 install --user -r requirements.txt",
+	"postCreateCommand": "pip3 install --user -r requirements.txt flake8 mypy pylint ruff flake8-print flake8-bandit flake8-builtins flake8-pytest-style flake8-simplify",
 	"customizations": {
 		"vscode": {
 			"extensions": [
