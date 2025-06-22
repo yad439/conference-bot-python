@@ -35,6 +35,7 @@ async def check_rights_middleware(handler: Callable[[Message, dict[str, Any]], A
     admin = await user_repository.is_admin(user.id)
     if admin:
         return await handler(event, data)
+    logging.getLogger(__name__).warning('Unauthorized access attempt by user %s (%s)', user.id, user.username)
     return None
 
 
