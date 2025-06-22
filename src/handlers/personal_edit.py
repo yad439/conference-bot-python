@@ -1,5 +1,6 @@
 import itertools
 import logging
+from collections.abc import Iterable, Sequence
 from io import StringIO
 from typing import TYPE_CHECKING, Any
 
@@ -136,7 +137,7 @@ class SelectSingleScene(Scene, state='selectSingle'):
                 await message.answer('Выберете из доступных вариантов')
                 return
             time_slot_id = slot_mapping[value]
-            await self.wizard.goto(EditingScene, slots=[time_slot_id])
+            await self.wizard.goto(EditingScene, slots=(time_slot_id,))
         except (ValueError, IndexError):
             self._logger.warning('User %s selected invalid slot %s', _format_user(message.from_user), message.text)
             await message.answer('Выберете из доступных вариантов')
@@ -147,7 +148,7 @@ class EditingScene(Scene, state='editing'):
 
     @on.message.enter()
     async def on_enter(self, message: Message, state: FSMContext, speech_repository: SpeechRepository,
-                       slots: list[int]):
+                       slots: Sequence[int]):
         self._logger.debug('User %s editing schedule: slots remaining %s', _format_user(message.from_user), slots)
         if not slots:
             await message.answer('Готово', reply_markup=ReplyKeyboardRemove())
@@ -172,7 +173,7 @@ class EditingScene(Scene, state='editing'):
 
     @on.callback_query.enter()
     async def on_query_enter(self, callback: CallbackQuery, state: FSMContext, speech_repository: SpeechRepository,
-                             slots: list[int]):
+                             slots: Sequence[int]):
         self._logger.debug('User %s editing schedule: slots remaining %s', _format_user(callback.from_user), slots)
         message = callback.message
         if isinstance(message, Message):
@@ -186,14 +187,13 @@ class EditingScene(Scene, state='editing'):
 
     @on.message(F.text == NOTHING_OPTION)
     async def on_nothing(self, message: Message, state: FSMContext, selection_repository: SelectionRepository):
-        slots: list[int] | None = await state.get_value('slots')
+        slots: Sequence[int] | None = await state.get_value('slots')
         assert slots is not None
         user = message.from_user
         assert user is not None
         self._logger.debug('User %s selected nothing for slot %d', _format_user(user), slots[0])
         await selection_repository.save_selection(user.id, slots[0], None)
-        slots.pop(0)
-        await self.wizard.retake(slots=slots)
+        await self.wizard.retake(slots=slots[1:])
 
     @on.message(F.text)
     async def on_message(self, message: Message, state: FSMContext, selection_repository: SelectionRepository):
@@ -208,8 +208,8 @@ class EditingScene(Scene, state='editing'):
             return
         selection = None
         data = await state.get_data()
-        options: list[SpeechDto] = data['options']
-        slots: list[int] = data['slots']
+        options: Iterable[SpeechDto] = data['options']
+        slots: Sequence[int] = data['slots']
         user = message.from_user
         assert user is not None
         self._logger.debug('User %s selected location "%s" for slot %d', _format_user(user), location, slots[0])
@@ -222,18 +222,16 @@ class EditingScene(Scene, state='editing'):
             await message.answer('Такой локации нет, повторите, пожалуйста')
             return
         await selection_repository.save_selection(user.id, slots[0], selection)
-        slots.pop(0)
-        await self.wizard.retake(slots=slots)
+        await self.wizard.retake(slots=slots[1:])
 
     @on.callback_query(F.data.startswith('select#'))
     async def on_query(self, callback: CallbackQuery, state: FSMContext, selection_repository: SelectionRepository):
         self._logger.debug('User %s selected location from inline keyboard', _format_user(callback.from_user))
         slot = await handle_selection_query(callback, selection_repository)
-        slots: list[int] | None = await state.get_value('slots')
+        slots: Sequence[int] | None = await state.get_value('slots')
         assert slots is not None
         if slots[0] == slot:
-            slots.pop(0)
-            await self.wizard.retake(slots=slots)
+            await self.wizard.retake(slots=slots[1:])
 
     @staticmethod
     @on.message()

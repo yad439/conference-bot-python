@@ -202,7 +202,7 @@ async def test_select_single(speech_repository: SpeechRepository, state: StateFa
     args = wizard.goto.await_args.args
     kwargs = wizard.goto.await_args.kwargs
     assert args[0] == personal_edit.EditingScene
-    assert kwargs['slots'] == [2]
+    assert kwargs['slots'] == (2,)
 
 
 @pytest.mark.asyncio
