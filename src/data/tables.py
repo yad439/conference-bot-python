@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import BigInteger, ForeignKey
+from sqlalchemy import BigInteger, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 # pylint: disable=too-few-public-methods,unsubscriptable-object
@@ -13,19 +13,27 @@ class Base(DeclarativeBase):
 class TimeSlot(Base):
     __tablename__ = 'time_slots'
     id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
-    date: Mapped[datetime.date]
-    start_time: Mapped[datetime.time]
-    end_time: Mapped[datetime.time]
+    date: Mapped[datetime.date] = mapped_column(nullable=False)
+    start_time: Mapped[datetime.time] = mapped_column(nullable=False)
+    end_time: Mapped[datetime.time] = mapped_column(nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('date', 'start_time', 'end_time'),
+    )
 
 
 class Speech(Base):
     __tablename__ = 'speeches'
     id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
-    title: Mapped[str]
-    speaker: Mapped[str]
+    title: Mapped[str] = mapped_column(nullable=False)
+    speaker: Mapped[str] = mapped_column(nullable=False)
     time_slot_id: Mapped[int] = mapped_column(ForeignKey('time_slots.id'))
     time_slot: Mapped['TimeSlot'] = relationship()
-    location: Mapped[str]
+    location: Mapped[str] = mapped_column(nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('time_slot_id', 'location'),
+    )
 
 
 class Selection(Base):
