@@ -5,30 +5,36 @@ from typing import Any, Self
 
 import pytest
 from aiogram import Bot, Router
-from aiogram.methods import AnswerCallbackQuery, SendMessage, TelegramMethod
+from aiogram.fsm.context import FSMContext
+from aiogram.methods import AnswerCallbackQuery, SendDocument, SendMessage, TelegramMethod
 from aiogram.types import (
     CallbackQuery,
     Chat,
     Document,
+    FSInputFile,
     InlineKeyboardMarkup,
+    InputFile,
     MaybeInaccessibleMessageUnion,
     Message,
     User,
 )
 
 
-class StateFake:
+class StateFake(FSMContext):
     def __init__(self: Self):
         self.data: dict[str, Any] = {}
 
-    async def update_data(self, **kwargs: Any):
+    async def update_data(self, data: dict[str, Any] | None = None, **kwargs: Any):
+        if data:
+            self.data.update(data)
         self.data.update(kwargs)
+        return self.data
 
     async def get_data(self):
         return self.data
 
-    async def get_value(self, key: str):
-        return self.data[key]
+    async def get_value(self, key: str, default: Any | None = None):
+        return self.data.get(key, default)
 
     async def clear(self):
         self.data.clear()
@@ -73,6 +79,27 @@ class BotFake:
                 self.notifications.append(text)
             self.pending_queries.discard(method.callback_query_id)
             return True
+        if isinstance(method, SendDocument):
+            chat_id = method.chat_id
+            assert isinstance(chat_id, int)
+            file = method.document
+            if isinstance(file, str):
+                file_id = file
+            else:
+                typing.assert_type(file, InputFile)
+                assert isinstance(file, FSInputFile)
+                file_id = str(self._id_counter)
+                self._id_counter += 1
+                filename = str(file.path)
+                self._files[file_id] = filename.encode('utf-8')
+            document = Document(file_id=file_id, file_unique_id=file_id,
+                                file_name=file.filename if isinstance(file, InputFile) else None).as_(self.bot)
+            message = Message(message_id=self._id_counter, date=datetime.datetime.now(datetime.UTC),
+                              chat=Chat(id=chat_id, type='private'), document=document).as_(self.bot)
+            self._id_counter += 1
+            self.messages.append(message)
+            self.sent_messages.append(method.caption or '')
+            return message
         pytest.fail(f'Unsupported method: {type(method)}')
 
     async def download(self, file_id: str):

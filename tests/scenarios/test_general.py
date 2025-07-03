@@ -1,5 +1,7 @@
 # ruff: noqa: PLR2004
 
+from pathlib import Path
+
 import pytest
 import pytest_asyncio
 from freezegun import freeze_time
@@ -12,6 +14,7 @@ from data.repository import SpeechRepository, UserRepository
 from data.tables import Settings
 from handlers import general
 from tests.fake_bot import BotFake
+from utility import FileManager
 
 
 @pytest_asyncio.fixture  # type: ignore
@@ -35,7 +38,8 @@ def user_repository(session_maker: async_sessionmaker[AsyncSession]):
 
 @pytest.fixture
 def bot(speech_repository: SpeechRepository, user_repository: UserRepository):
-    bot = BotFake(speech_repository=speech_repository, user_repository=user_repository)
+    file_manager = FileManager({'schedule': Path('schedule.txt')})
+    bot = BotFake(speech_repository=speech_repository, user_repository=user_repository, file_manager=file_manager)
     bot.router.include_router(general.get_router())
     return bot
 
@@ -69,11 +73,19 @@ async def test_general_all(bot: BotFake):
 
     assert not bot.pending_queries
     assert len(bot.sent_messages) == 2
-    text = bot.sent_messages[1]
-    for substring in ('About something', 'About something else', 'Alternative point', 'New day talk',
-                      'Alternative day 2', 'Dr. John Doe', 'Jane Doe', 'Mr. Alternative', 'New speaker', 'A', 'B',
-                      '01.06', '02.06', '9:00', '10:00', '11:00'):
-        assert substring in text
+    message = bot.messages[1]
+    document = message.document
+    assert document is not None
+    assert document.file_name == 'schedule.txt'
+    file_id = document.file_id
+
+    await bot.query(message, 'show_general_all')
+    assert not bot.pending_queries
+    assert len(bot.sent_messages) == 3
+    message = bot.messages[2]
+    document = message.document
+    assert document is not None
+    assert document.file_id == file_id
 
 
 @pytest.mark.asyncio

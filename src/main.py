@@ -27,6 +27,7 @@ import handlers.settings
 from data.repository import SelectionRepository, SpeechRepository, UserRepository
 from dto import TimeSlotDto
 from notifications import changed, event_start
+from utility import FileManager
 
 
 def configure_async_logging():
@@ -52,6 +53,13 @@ async def main():
         logger.critical('Token environment variable not found')
         return
     listener = configure_async_logging()
+    try:
+        await setup_and_run_bot(token, logger)
+    finally:
+        listener.stop()
+
+
+async def setup_and_run_bot(token: str, logger: logging.Logger):
     engine = create_async_engine(os.getenv('DATABASE_URL', 'sqlite+aiosqlite:///:memory:'))
     session_maker = async_sessionmaker(engine)
     await data.setup.create_tables(engine)
@@ -61,10 +69,12 @@ async def main():
     speech_repository = SpeechRepository(session_maker)
     selection_repository = SelectionRepository(session_maker)
     user_repository = UserRepository(session_maker)
+    general_schedule_path = Path(os.getenv('GENERAL_SCHEDULE_PATH', 'files/general.pdf'))
+    file_manager = FileManager({handlers.general.SCHEDULE_FILE_KEY: general_schedule_path})
 
     bot = Bot(token)
     dispatcher = Dispatcher(speech_repository=speech_repository, selection_repository=selection_repository,
-                            user_repository=user_repository)
+                            user_repository=user_repository, file_manager=file_manager)
     dispatcher.include_router(handlers.general.get_router())
     dispatcher.include_router(handlers.personal_view.get_router())
     dispatcher.include_router(handlers.settings.get_router())
@@ -90,7 +100,6 @@ async def main():
     else:
         logger.info('Starting polling')
         await dispatcher.start_polling(bot, schedule_update_callback=change_callback)  # type: ignore
-    listener.stop()
 
 
 async def run_webhook(bot: Bot, dispatcher: Dispatcher,

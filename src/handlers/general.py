@@ -7,11 +7,14 @@ from zoneinfo import ZoneInfo
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, InaccessibleMessage, Message
+from aiogram.types import CallbackQuery, FSInputFile, InaccessibleMessage, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
 from data.repository import SpeechRepository, UserRepository
+from utility import FileManager
 from view import timetable
+
+SCHEDULE_FILE_KEY = 'schedule'
 
 
 async def handle_start(message: Message, state: FSMContext):
@@ -39,7 +42,8 @@ async def handle_schedule(message: Message):
     return await message.answer('Какую часть расписания хотите просмотреть?', reply_markup=keyboard.as_markup())
 
 
-async def handle_schedule_selection(callback: CallbackQuery, speech_repository: SpeechRepository):
+async def handle_schedule_selection(callback: CallbackQuery, speech_repository: SpeechRepository,
+                                    file_manager: FileManager):
     message = callback.message
     if message is None or isinstance(message, InaccessibleMessage):
         await callback.answer('Сообщение устарело')
@@ -48,7 +52,9 @@ async def handle_schedule_selection(callback: CallbackQuery, speech_repository: 
     timezone = ZoneInfo('Asia/Novosibirsk')
     match query:
         case 'show_general_all':
-            date = None
+            await _send_full_schedule(message, file_manager)
+            await callback.answer()
+            return
         case 'show_general_today':
             date = datetime.datetime.now(timezone).date()
         case 'show_general_tomorrow':
@@ -64,7 +70,19 @@ async def handle_schedule_selection(callback: CallbackQuery, speech_repository: 
     else:
         days = ((day, itertools.groupby(locations, lambda x: x.location))
                 for day, locations in itertools.groupby(speeches, lambda x: x.time_slot.date))
-        await message.answer(timetable.render_timetable(days, date is None))
+        await message.answer(timetable.render_timetable(days, False))
+
+
+async def _send_full_schedule(message: Message, file_manager: FileManager):
+    file_id = file_manager.get_file_id(SCHEDULE_FILE_KEY)
+    if file_id is None:
+        file = FSInputFile(file_manager.get_file_path(SCHEDULE_FILE_KEY))
+        result = await message.answer_document(file)
+        document = result.document
+        assert document is not None
+        file_manager.set_file_id(SCHEDULE_FILE_KEY, document.file_id)
+    else:
+        await message.answer_document(file_id)
 
 
 async def handle_register(message: Message, user_repository: UserRepository):
