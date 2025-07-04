@@ -40,11 +40,12 @@ async def handle_start(message: Message, state: FSMContext):
         '''), reply_markup=build_general_keyboard())
 
 
-async def handle_schedule(message: Message):
+async def handle_schedule(message: Message, speech_repository: SpeechRepository):
     keyboard = (InlineKeyboardBuilder()
-                .button(text='Всё', callback_data='show_general_all')
-                .button(text='Сегодня', callback_data='show_general_today')
-                .button(text='Завтра', callback_data='show_general_tomorrow'))
+                .button(text='Всё', callback_data='show_general_all'))
+    for date in await speech_repository.get_all_dates():
+        keyboard.button(text=date.strftime('%d.%m'),
+                        callback_data=f'show_general_date#{date.strftime('%Y-%m-%d:+0700')}')
     return await message.answer('Какую часть расписания хотите просмотреть?', reply_markup=keyboard.as_markup())
 
 
@@ -55,9 +56,11 @@ async def handle_schedule_selection(callback: CallbackQuery, speech_repository: 
         await callback.answer('Сообщение устарело')
         return
     query = callback.data
+    assert query is not None
+    command = query.split('#')
     timezone = ZoneInfo('Asia/Novosibirsk')
     _LOGGER.debug('User %s requested general schedule with query %s', format_user(callback.from_user), query)
-    match query:
+    match command[0]:
         case 'show_general_all':
             await _send_full_schedule(message, file_manager)
             await callback.answer()
@@ -66,6 +69,13 @@ async def handle_schedule_selection(callback: CallbackQuery, speech_repository: 
             date = datetime.datetime.now(timezone).date()
         case 'show_general_tomorrow':
             date = datetime.datetime.now(timezone).date() + datetime.timedelta(days=1)
+        case 'show_general_date':
+            try:
+                date = datetime.datetime.strptime(command[1], '%Y-%m-%d:%z').date()
+            except (IndexError, ValueError):
+                _LOGGER.exception('Invalid date format in command %s', query)
+                await callback.answer('Что-то пошло не так')
+                return
         case _:
             _LOGGER.error('Received unknown general command %s', query)
             await callback.answer('Что-то пошло не так')

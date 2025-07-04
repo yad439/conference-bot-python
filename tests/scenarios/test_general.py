@@ -90,10 +90,11 @@ async def test_general_all(bot: BotFake):
 
 @pytest.mark.asyncio
 @freeze_time('2025-06-01')
-async def test_general_today(bot: BotFake):
+@pytest.mark.parametrize('query', ['show_general_today', 'show_general_date#2025-06-01:+0700'])
+async def test_general_today(bot: BotFake, query: str):
     message = await _init_general(bot)
 
-    await bot.query(message, 'show_general_today')
+    await bot.query(message, query)
 
     assert not bot.pending_queries
     assert len(bot.sent_messages) == 2
@@ -107,10 +108,11 @@ async def test_general_today(bot: BotFake):
 
 @pytest.mark.asyncio
 @freeze_time('2025-06-01')
-async def test_general_tomorrow(bot: BotFake):
+@pytest.mark.parametrize('query', ['show_general_tomorrow', 'show_general_date#2025-06-02:+0700'])
+async def test_general_tomorrow(bot: BotFake, query: str):
     message = await _init_general(bot)
 
-    await bot.query(message, 'show_general_tomorrow')
+    await bot.query(message, query)
 
     assert not bot.pending_queries
     assert len(bot.sent_messages) == 2
@@ -125,7 +127,7 @@ async def test_general_tomorrow(bot: BotFake):
 
 @pytest.mark.asyncio
 @freeze_time('2025-05-01')
-@pytest.mark.parametrize('query', ['show_general_today', 'show_general_tomorrow'])
+@pytest.mark.parametrize('query', ['show_general_today', 'show_general_tomorrow', 'show_general_date#2025-05-01:+0700'])
 async def test_schedule_empty(bot: BotFake, query: str):
     message = await _init_general(bot)
 

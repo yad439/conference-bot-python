@@ -66,7 +66,7 @@ class SpeechRepository:
             return result.all()
 
     async def get_all_dates(self):
-        statement = select(TimeSlot.date).distinct()
+        statement = select(TimeSlot.date).distinct().order_by(TimeSlot.date)
         async with self._factory() as session:
             result = await session.scalars(statement)
             return result.all()

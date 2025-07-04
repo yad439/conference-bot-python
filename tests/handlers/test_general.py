@@ -36,9 +36,9 @@ async def test_start():
 
 
 @pytest.mark.asyncio
-async def test_handle_personal_view():
+async def test_handle_personal_view(speech_repository: SpeechRepository):
     message = AsyncMock()
-    await general.handle_schedule(message)
+    await general.handle_schedule(message, speech_repository)
     message.answer.assert_awaited_once()
     args = message.answer.await_args.args
     assert 'Какую часть расписания' in args[0]
@@ -75,8 +75,9 @@ async def test_schedule_all_repeat(speech_repository: SpeechRepository):
 
 @pytest.mark.asyncio
 @freeze_time('2025-06-01')
-async def test_schedule_today(speech_repository: SpeechRepository):
-    callback = AsyncMock(data='show_general_today')
+@pytest.mark.parametrize('query', ['show_general_today', 'show_general_date#2025-06-01:+0700'])
+async def test_schedule_today(speech_repository: SpeechRepository, query: str):
+    callback = AsyncMock(data=query)
     file_manager = FileManager({})
 
     await general.handle_schedule_selection(callback, speech_repository, file_manager)
@@ -93,8 +94,9 @@ async def test_schedule_today(speech_repository: SpeechRepository):
 
 @pytest.mark.asyncio
 @freeze_time('2025-06-01')
-async def test_schedule_tomorrow(speech_repository: SpeechRepository):
-    callback = AsyncMock(data='show_general_tomorrow')
+@pytest.mark.parametrize('query', ['show_general_tomorrow', 'show_general_date#2025-06-02:+0700'])
+async def test_schedule_tomorrow(speech_repository: SpeechRepository, query: str):
+    callback = AsyncMock(data=query)
     file_manager = FileManager({})
 
     await general.handle_schedule_selection(callback, speech_repository, file_manager)
@@ -112,7 +114,7 @@ async def test_schedule_tomorrow(speech_repository: SpeechRepository):
 
 @pytest.mark.asyncio
 @freeze_time('2025-05-01')
-@pytest.mark.parametrize('query', ['show_general_today', 'show_general_tomorrow'])
+@pytest.mark.parametrize('query', ['show_general_today', 'show_general_tomorrow', 'show_general_date#2025-05-01:+0700'])
 async def test_schedule_empty(speech_repository: SpeechRepository, query: str):
     callback = AsyncMock(data=query)
     file_manager = FileManager({})
