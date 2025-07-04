@@ -157,7 +157,7 @@ class EditingScene(Scene, state='editing'):
         reply_keyboard = ReplyKeyboardBuilder()
         for option in options:
             reply_keyboard.button(text=option.location)
-        reply_keyboard.button(text=NOTHING_OPTION).button(text='Отмена')
+        reply_keyboard.button(text=NOTHING_OPTION).button(text='Завершить')
         inline_keyboard = InlineKeyboardBuilder()
         for option in options:
             inline_keyboard.button(text=option.location, callback_data=f'select#{slot.id}#{option.id}')
@@ -196,7 +196,7 @@ class EditingScene(Scene, state='editing'):
         if location == NOTHING_OPTION:
             await self.on_nothing(message, state, selection_repository)
             return
-        if location == 'Отмена':
+        if location == 'Завершить':
             self._logger.debug('User %s cancelled editing', format_user(message.from_user))
             await message.answer('Готово', reply_markup=ReplyKeyboardRemove())
             await self.wizard.exit()

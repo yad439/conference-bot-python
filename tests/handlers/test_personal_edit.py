@@ -398,7 +398,7 @@ async def test_edit_cancel(session_maker: async_sessionmaker[AsyncSession],
                            state: StateFake, user: User, message: Message, query_enter: bool):
     wizard, scene = await _setup_edit(session_maker, speech_repository, state, user, message, query_enter, False)
 
-    message = AsyncMock(text='Отмена', from_user=user)
+    message = AsyncMock(text='Завершить', from_user=user)
     await scene.on_message(message, state, selection_repository)
 
     wizard.exit.assert_called_once()
