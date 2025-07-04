@@ -16,4 +16,4 @@ async def notify_schedule_change(bot: Bot, selection_repository: SelectionReposi
     grouped = itertools.groupby(selections, operator.itemgetter(0))
     for user, selection in grouped:
         message = notifications.render_changed(slot_mapping[slot_id] for _, slot_id in selection)
-        await bot.send_message(user, message)
+        await bot.send_message(user, **message.as_kwargs())

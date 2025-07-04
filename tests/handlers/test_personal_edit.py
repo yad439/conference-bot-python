@@ -146,9 +146,9 @@ async def test_select_day(speech_repository: SpeechRepository, state: StateFake,
     await scene.on_enter(message, state, speech_repository)
 
     message.answer.assert_called_once()
-    args = message.answer.await_args.args
-    assert '01.06' in args[0]
-    assert '02.06' in args[0]
+    args = message.answer.await_args.kwargs
+    assert '01.06' in args['text']
+    assert '02.06' in args['text']
 
     message = AsyncMock(text=day)
     await scene.on_message(message, state, speech_repository)
@@ -170,9 +170,9 @@ async def test_select_day_wrong(speech_repository: SpeechRepository, state: Stat
     await scene.on_enter(message, state, speech_repository)
 
     message.answer.assert_called_once()
-    args = message.answer.await_args.args
-    assert '01.06' in args[0]
-    assert '02.06' in args[0]
+    args = message.answer.await_args.kwargs
+    assert '01.06' in args['text']
+    assert '02.06' in args['text']
 
     message = AsyncMock(text=day)
     await scene.on_message(message, state, speech_repository)
@@ -191,9 +191,9 @@ async def test_select_single(speech_repository: SpeechRepository, state: StateFa
     await scene.on_enter(message, state, speech_repository)
 
     message.answer.assert_called_once()
-    args = message.answer.await_args.args
+    args = message.answer.await_args.kwargs
     for substring in ['01.06', '02.06', '09:00', '10:00', '11:00']:
-        assert substring in args[0]
+        assert substring in args['text']
 
     message = AsyncMock(text='1')
     await scene.on_message(message, state)
@@ -215,9 +215,9 @@ async def test_select_single_wrong(speech_repository: SpeechRepository, state: S
     await scene.on_enter(message, state, speech_repository)
 
     message.answer.assert_called_once()
-    args = message.answer.await_args.args
+    args = message.answer.await_args.kwargs
     for substring in ['01.06', '02.06', '09:00', '10:00', '11:00']:
-        assert substring in args[0]
+        assert substring in args['text']
 
     message = AsyncMock(text=option)
     await scene.on_message(message, state)

@@ -17,7 +17,7 @@ def speech(time_slot: TimeSlotDto):
 
 
 def test_make_entry_string_default(speech: SpeechDto):
-    result = timetable.make_entry_string(speech)
+    result = timetable.make_entry_string(speech).as_kwargs()['text']
     assert '9:00' in result
     assert '10:00' in result
     assert 'A title' in result
@@ -26,7 +26,7 @@ def test_make_entry_string_default(speech: SpeechDto):
 
 def test_make_entry_string_with_location(speech: SpeechDto):
     result = timetable.make_entry_string(
-        speech, format_type=timetable.EntryFormat.WITH_PLACE)
+        speech, format_type=timetable.EntryFormat.WITH_PLACE).as_kwargs()['text']
     assert '9:00' in result
     assert '10:00' in result
     assert 'A title' in result
@@ -36,7 +36,7 @@ def test_make_entry_string_with_location(speech: SpeechDto):
 
 def test_make_entry_string_location_only(speech: SpeechDto):
     result = timetable.make_entry_string(
-        speech, format_type=timetable.EntryFormat.PLACE_ONLY)
+        speech, format_type=timetable.EntryFormat.PLACE_ONLY).as_kwargs()['text']
     assert 'A title' in result
     assert 'A Speaker' in result
     assert 'a location' in result

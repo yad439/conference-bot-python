@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from aiogram.types import User
+from aiogram.utils.formatting import Text, as_list, as_section
 
 
 class FileManager:
@@ -24,6 +25,10 @@ def format_user(user: User | None):
     if user is None:
         return 'Unknown'
     return f'{user.first_name} {user.last_name} ({user.id})'
+
+
+def as_list_section(header: Text | str, *body: Text | str):
+    return as_section(header, as_list(*body))
 
 
 def cast[T](target_type: type[T], value: Any):  # noqa: ANN401

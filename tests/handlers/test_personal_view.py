@@ -57,7 +57,7 @@ async def test_handle_personal_view_all(selection_repository: SelectionRepositor
     await handle_personal_view_selection(callback, selection_repository)
     callback.answer.assert_called_once()
     callback.message.answer.assert_called()
-    text = '\n'.join(arg.args[0] for arg in callback.message.answer.await_args_list)
+    text = '\n'.join(arg.kwargs['text'] for arg in callback.message.answer.await_args_list)
     for substring in ('About something', 'About something else',
                       'Alternative day 2', 'Dr. John Doe', 'Jane Doe', 'Mr. Alternative', 'A', 'B',
                       '01.06', '02.06', '9:00', '10:00', '11:00'):
@@ -89,13 +89,13 @@ async def test_handle_personal_view_today(selection_repository: SelectionReposit
     await handle_personal_view_selection(callback, selection_repository)
     callback.answer.assert_called_once()
     callback.message.answer.assert_called_once()
-    args = callback.message.answer.await_args.args
+    args = callback.message.answer.await_args.kwargs['text']
     for substring in ('About something', 'About something else',
                       'Dr. John Doe', 'Jane Doe', 'A',
                       '01.06', '9:00', '10:00', '11:00'):
-        assert substring in args[0]
+        assert substring in args
     for substring in 'Alternative point', 'Alternative day 2', 'New day talk', 'Mr. Alternative', 'B', '02.06':
-        assert substring not in args[0]
+        assert substring not in args
 
 
 @pytest.mark.asyncio
@@ -107,12 +107,12 @@ async def test_handle_personal_view_tomorrow(selection_repository: SelectionRepo
     await handle_personal_view_selection(callback, selection_repository)
     callback.answer.assert_called_once()
     callback.message.answer.assert_called_once()
-    args = callback.message.answer.await_args.args
+    args = callback.message.answer.await_args.kwargs['text']
     for substring in 'Alternative day 2', 'Mr. Alternative', 'B', '02.06', '9:00', '10:00':
-        assert substring in args[0]
+        assert substring in args
     for substring in ('About something', 'About something else', 'Alternative point', 'New day talk', 'Dr. John Doe',
                       'Jane Doe', 'A:', '01.06', '11:00'):
-        assert substring not in args[0]
+        assert substring not in args
 
 
 @pytest.mark.asyncio

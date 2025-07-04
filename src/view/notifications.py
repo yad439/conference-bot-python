@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 
 from dto import SpeechDto, TimeSlotDto
+from utility import as_list_section
 from view import timetable
 
 
@@ -13,5 +14,5 @@ def render_settings(enabled: bool):
 
 
 def render_changed(time_slots: Iterable[TimeSlotDto]):
-    slot_strings = (timetable.make_slot_string(slot) for slot in time_slots)
-    return 'Поменялось расписание для следующих слотов:\n' + '\n'.join(slot_strings) + '\nПроверьте ваш выбор'
+    slot_strings = (timetable.make_slot_string(slot, bold=False) for slot in time_slots)
+    return as_list_section('Поменялось расписание для следующих слотов:', *slot_strings, 'Проверьте ваш выбор')

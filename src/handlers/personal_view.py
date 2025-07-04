@@ -60,7 +60,7 @@ async def handle_personal_view_selection(callback: CallbackQuery, selection_repo
         return
     days = itertools.groupby(speeches, lambda x: x.time_slot.date)
     for day_schedule in timetable.render_personal(days):
-        await message.answer(day_schedule)
+        await message.answer(**day_schedule.as_kwargs())
 
 
 def get_router():

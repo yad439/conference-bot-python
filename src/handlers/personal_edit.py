@@ -1,7 +1,6 @@
 import itertools
 import logging
 from collections.abc import Iterable, Sequence
-from io import StringIO
 from typing import TYPE_CHECKING, Any
 
 from aiogram import F, Router
@@ -9,11 +8,12 @@ from aiogram.filters import Command, and_f
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.scene import Scene, SceneRegistry, on
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
+from aiogram.utils.formatting import Text
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
 from data.repository import SelectionRepository, SpeechRepository
 from handlers import general
-from utility import format_user
+from utility import as_list_section, format_user
 from view import timetable
 
 if TYPE_CHECKING:
@@ -79,10 +79,10 @@ class SelectDayScene(Scene, state='selectDay'):
         keyboard = ReplyKeyboardBuilder()
         for day in days:
             keyboard.button(text=day.strftime('%d.%m'))
-        answer = 'Возможные варианты:\n' + '\n'.join(map(timetable.make_date_string, days))
+        answer = as_list_section('Возможные варианты:', *map(timetable.make_date_string, days))
         await state.update_data(days={day.strftime('%d.%m'): day for day in days}
                                 | {str(i + 1): day for i, day in enumerate(days)})
-        await message.answer(answer, reply_markup=keyboard.as_markup())
+        await message.answer(**answer.as_kwargs(), reply_markup=keyboard.as_markup())
 
     @on.message(F.text)
     async def on_message(self, message: Message, state: FSMContext, speech_repository: SpeechRepository):
@@ -108,17 +108,18 @@ class SelectSingleScene(Scene, state='selectSingle'):
         self._logger.debug('User %s started selecting single slot', format_user(message.from_user))
         slots = await speech_repository.get_all_slots()
         slot_mapping: list[int] = []
-        result = StringIO()
-        result.write('Выберете номер слота:\n')
+        header = 'Выберете номер слота:'
+        body: list[Text] = []
         for date, day_slots in itertools.groupby(slots, key=lambda slot: slot.date):
-            result.write(timetable.make_date_string(date))
-            result.write(':\n')
+            date_header = Text(timetable.make_date_string(date), ':')
+            date_body: list[Text] = []
             for slot in day_slots:
                 assert slot.id is not None
-                result.write(f'{len(slot_mapping)}: {timetable.make_slot_string(slot)}\n')
+                date_body.append(Text(len(slot_mapping), ':', timetable.make_slot_string(slot, bold=False)))
                 slot_mapping.append(slot.id)
+            body.append(as_list_section(date_header, *date_body))
         await state.update_data(slot_mapping=slot_mapping)
-        await message.answer(result.getvalue(), reply_markup=ReplyKeyboardRemove())
+        await message.answer(**as_list_section(header, *body).as_kwargs(), reply_markup=ReplyKeyboardRemove())
 
     @on.message(F.text)
     async def on_message(self, message: Message, state: FSMContext):
@@ -152,9 +153,8 @@ class EditingScene(Scene, state='editing'):
             return
         slot, options = await speech_repository.get_in_time_slot(slots[0])
         slot_string = timetable.make_slot_string(slot, with_day=True)
-        answer = 'Возможные варианты:\n' + \
-            '\n'.join(timetable.make_entry_string(it, timetable.EntryFormat.PLACE_ONLY)
-                      for it in options)
+        option_strings = (timetable.make_entry_string(it, timetable.EntryFormat.PLACE_ONLY) for it in options)
+        answer = as_list_section('Возможные варианты:', *option_strings)
         reply_keyboard = ReplyKeyboardBuilder()
         for option in options:
             reply_keyboard.button(text=option.location)
@@ -164,8 +164,8 @@ class EditingScene(Scene, state='editing'):
             inline_keyboard.button(text=option.location, callback_data=f'select#{slot.id}#{option.id}')
         inline_keyboard.button(text=NOTHING_OPTION, callback_data=f'select#{slot.id}#-1')
         await state.update_data(slots=slots, options=options)
-        await message.answer(slot_string, reply_markup=reply_keyboard.as_markup())
-        await message.answer(answer, reply_markup=inline_keyboard.as_markup())
+        await message.answer(**slot_string.as_kwargs(), reply_markup=reply_keyboard.as_markup())
+        await message.answer(**answer.as_kwargs(), reply_markup=inline_keyboard.as_markup())
 
     @on.callback_query.enter()
     async def on_query_enter(self, callback: CallbackQuery, state: FSMContext, speech_repository: SpeechRepository,
