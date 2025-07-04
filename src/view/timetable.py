@@ -65,10 +65,10 @@ def render_timetable(
 
 
 def render_personal(table: Iterable[tuple[datetime.date, Iterable[SpeechDto]]]):
-    output = StringIO()
     for date, speeches in table:
+        output = StringIO()
         output.write(dates.format_date(date, 'E, dd.MM:\n', locale='ru').capitalize())
         for speech in speeches:
             output.write(make_entry_string(speech, EntryFormat.WITH_PLACE))
             output.write('\n')
-    return output.getvalue()
+        yield output.getvalue()

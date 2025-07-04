@@ -46,14 +46,14 @@ async def test_handle_personal_view_all(selection_repository: SelectionRepositor
     callback.from_user.id = 42
     await handle_personal_view_selection(callback, selection_repository)
     callback.answer.assert_called_once()
-    callback.message.answer.assert_called_once()
-    args = callback.message.answer.await_args.args
+    callback.message.answer.assert_called()
+    text = '\n'.join(arg.args[0] for arg in callback.message.answer.await_args_list)
     for substring in ('About something', 'About something else',
                       'Alternative day 2', 'Dr. John Doe', 'Jane Doe', 'Mr. Alternative', 'A', 'B',
                       '01.06', '02.06', '9:00', '10:00', '11:00'):
-        assert substring in args[0]
+        assert substring in text
     for substring in 'Alternative point', 'New day talk':
-        assert substring not in args[0]
+        assert substring not in text
 
 
 @pytest.mark.asyncio
