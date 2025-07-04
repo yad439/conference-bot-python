@@ -84,11 +84,13 @@ async def _send_full_schedule(message: Message, file_manager: FileManager):
     file_id = file_manager.get_file_id(SCHEDULE_FILE_KEY)
     if file_id is None:
         file = FSInputFile(file_manager.get_file_path(SCHEDULE_FILE_KEY))
+        _LOGGER.info('Uploading file %s for schedule', file.path)
         result = await message.answer_document(file)
         document = result.document
         assert document is not None
         file_manager.set_file_id(SCHEDULE_FILE_KEY, document.file_id)
     else:
+        _LOGGER.debug('Using cached file ID %s for schedule', file_id)
         await message.answer_document(file_id)
 
 
