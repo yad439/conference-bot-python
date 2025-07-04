@@ -2,6 +2,8 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from aiogram.types import User
+
 
 class FileManager:
     def __init__(self, file_paths: Mapping[str, Path]):
@@ -16,6 +18,12 @@ class FileManager:
 
     def set_file_id(self, name: str, file_id: str):
         self._uploaded_files[name] = file_id
+
+
+def format_user(user: User | None):
+    if user is None:
+        return 'Unknown'
+    return f'{user.first_name} {user.last_name} ({user.id})'
 
 
 def cast[T](target_type: type[T], value: Any):  # noqa: ANN401

@@ -9,7 +9,10 @@ from aiogram.types import CallbackQuery, InaccessibleMessage, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from data.repository import SelectionRepository
+from utility import format_user
 from view import timetable
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def handle_personal_view(message: Message):
@@ -23,10 +26,12 @@ async def handle_personal_view(message: Message):
 async def handle_personal_view_selection(callback: CallbackQuery, selection_repository: SelectionRepository):
     message = callback.message
     if message is None or isinstance(message, InaccessibleMessage):
+        _LOGGER.warning('Received callback for an inaccessible message from user %s', format_user(callback.from_user))
         await callback.answer('Сообщение устарело')
         return
     query = callback.data
     timezone = ZoneInfo('Asia/Novosibirsk')
+    _LOGGER.debug('User %s requested personal schedule with query %s', format_user(callback.from_user), query)
     match query:
         case 'show_personal_all':
             date = None
@@ -35,7 +40,7 @@ async def handle_personal_view_selection(callback: CallbackQuery, selection_repo
         case 'show_personal_tomorrow':
             date = datetime.datetime.now(timezone).date() + datetime.timedelta(days=1)
         case _:
-            logging.getLogger(__name__).error('Received unknown personal command %s', query)
+            _LOGGER.error('Received unknown personal command %s', query)
             await callback.answer('Что-то пошло не так')
             return
     speeches = await selection_repository.get_selected_speeches(callback.from_user.id, date)

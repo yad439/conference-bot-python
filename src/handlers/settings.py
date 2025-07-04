@@ -7,6 +7,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 import view
 import view.notifications
 from data.repository import UserRepository
+from utility import format_user
 
 
 async def handle_show_settings(message: Message, user_repository: UserRepository):
@@ -24,12 +25,12 @@ async def handle_set_setting(callback: CallbackQuery, user_repository: UserRepos
     query = callback.data
     match query:
         case 'set_notifications_on':
-            logger.info('User %d enabled notifications', callback.from_user.id)
+            logger.debug('User %d enabled notifications', format_user(callback.from_user))
             await user_repository.save_notification_setting(callback.from_user.id, True)
             await callback.answer('Уведомления включены')
             enabled = True
         case 'set_notifications_off':
-            logger.info('User %d disabled notifications', callback.from_user.id)
+            logger.debug('User %s disabled notifications', format_user(callback.from_user))
             await user_repository.save_notification_setting(callback.from_user.id, False)
             await callback.answer('Уведомления выключены')
             enabled = False

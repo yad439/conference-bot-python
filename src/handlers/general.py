@@ -11,14 +11,16 @@ from aiogram.types import CallbackQuery, FSInputFile, InaccessibleMessage, Messa
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
 from data.repository import SpeechRepository, UserRepository
-from utility import FileManager
+from utility import FileManager, format_user
 from view import timetable
 
 SCHEDULE_FILE_KEY = 'schedule'
 
+_LOGGER = logging.getLogger(__name__)
+
 
 async def handle_start(message: Message, state: FSMContext):
-    logging.getLogger(__name__).debug('User %s started interacting with the bot', message.from_user)
+    _LOGGER.debug('User %s started interacting with the bot', format_user(message.from_user))
     builder = (ReplyKeyboardBuilder()
                .button(text='/schedule')
                .button(text='/configure')
@@ -50,6 +52,7 @@ async def handle_schedule_selection(callback: CallbackQuery, speech_repository: 
         return
     query = callback.data
     timezone = ZoneInfo('Asia/Novosibirsk')
+    _LOGGER.debug('User %s requested general schedule with query %s', format_user(callback.from_user), query)
     match query:
         case 'show_general_all':
             await _send_full_schedule(message, file_manager)
@@ -60,7 +63,7 @@ async def handle_schedule_selection(callback: CallbackQuery, speech_repository: 
         case 'show_general_tomorrow':
             date = datetime.datetime.now(timezone).date() + datetime.timedelta(days=1)
         case _:
-            logging.getLogger(__name__).error('Received unknown general command %s', query)
+            _LOGGER.error('Received unknown general command %s', query)
             await callback.answer('Что-то пошло не так')
             return
     speeches = await speech_repository.get_all_speeches(date)
@@ -103,5 +106,5 @@ def get_router():
     router.callback_query.register(
         handle_schedule_selection, F.data.startswith('show_general_'))
     router.message.register(handle_register, Command('register'))
-    logging.getLogger(__name__).info('General handlers registered')
+    _LOGGER.info('General handlers registered')
     return router

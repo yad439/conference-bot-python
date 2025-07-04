@@ -44,7 +44,7 @@ def configure_async_logging():
 async def main():
     log_config_path = Path(os.getenv('LOG_CONFIG', 'logging.ini'))
     if log_config_path.exists():
-        logging.config.fileConfig(log_config_path)
+        logging.config.fileConfig(log_config_path, disable_existing_loggers=False)
     else:
         logging.basicConfig(level=logging.DEBUG)
     token = os.getenv('TELEGRAM_TOKEN')
