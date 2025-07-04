@@ -19,13 +19,17 @@ SCHEDULE_FILE_KEY = 'schedule'
 _LOGGER = logging.getLogger(__name__)
 
 
-async def handle_start(message: Message, state: FSMContext):
-    _LOGGER.debug('User %s started interacting with the bot', format_user(message.from_user))
+def build_general_keyboard():
     builder = (ReplyKeyboardBuilder()
                .button(text='/schedule')
                .button(text='/configure')
                .button(text='/personal')
                .button(text='/settings'))
+    return builder.as_markup()
+
+
+async def handle_start(message: Message, state: FSMContext):
+    _LOGGER.debug('User %s started interacting with the bot', format_user(message.from_user))
     await state.clear()
     await message.answer(textwrap.dedent('''
     Это бот, предоставляющий информацию о мероприятиях. Команды:
@@ -33,7 +37,7 @@ async def handle_start(message: Message, state: FSMContext):
     /configure - настройка персональной программы
     /personal - ваша персональная программа
     /settings - настройки уведомлений
-        '''), reply_markup=builder.as_markup())
+        '''), reply_markup=build_general_keyboard())
 
 
 async def handle_schedule(message: Message):

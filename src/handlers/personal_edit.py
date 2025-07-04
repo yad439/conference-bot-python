@@ -12,6 +12,7 @@ from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
 from data.repository import SelectionRepository, SpeechRepository
+from handlers import general
 from utility import format_user
 from view import timetable
 
@@ -146,7 +147,7 @@ class EditingScene(Scene, state='editing'):
                        slots: Sequence[int]):
         self._logger.debug('User %s editing schedule: slots remaining %s', format_user(message.from_user), slots)
         if not slots:
-            await message.answer('Готово', reply_markup=ReplyKeyboardRemove())
+            await message.answer('Готово', reply_markup=general.build_general_keyboard())
             await self.wizard.exit()
             return
         slot, options = await speech_repository.get_in_time_slot(slots[0])
