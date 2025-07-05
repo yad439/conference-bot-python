@@ -1,5 +1,6 @@
 import datetime
 import typing
+from collections.abc import Mapping
 from io import BytesIO
 from typing import Any, Self
 
@@ -24,7 +25,7 @@ class StateFake(FSMContext):
     def __init__(self: Self):
         self.data: dict[str, Any] = {}
 
-    async def update_data(self, data: dict[str, Any] | None = None, **kwargs: Any):
+    async def update_data(self, data: Mapping[str, Any] | None = None, **kwargs: Any):
         if data:
             self.data.update(data)
         self.data.update(kwargs)
@@ -60,7 +61,7 @@ class BotFake:
     def bot(self):
         return typing.cast('Bot', self)
 
-    async def __call__(self, method: TelegramMethod[Any]):
+    async def __call__(self, method: TelegramMethod[Any]):  # NOSONAR
         if isinstance(method, SendMessage):
             chat_id = method.chat_id
             assert isinstance(chat_id, int)
@@ -102,7 +103,7 @@ class BotFake:
             return message
         pytest.fail(f'Unsupported method: {type(method)}')
 
-    async def download(self, file_id: str):
+    async def download(self, file_id: str):  # NOSONAR
         return BytesIO(self._files[file_id])
 
     def message(self, text: str, user_id: int = 42, chat_id: int = 42, username: str | None = 'testUser',

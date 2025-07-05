@@ -8,7 +8,7 @@ from aiogram.filters import Command, and_f
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.scene import Scene, SceneRegistry, on
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
-from aiogram.utils.formatting import Text
+from aiogram.utils.formatting import Text, Underline, as_key_value, as_marked_section
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
 from data.repository import SelectionRepository, SpeechRepository
@@ -79,7 +79,7 @@ class SelectDayScene(Scene, state='selectDay'):
         keyboard = ReplyKeyboardBuilder()
         for day in days:
             keyboard.button(text=day.strftime('%d.%m'))
-        answer = as_list_section('Возможные варианты:', *map(timetable.make_date_string, days))
+        answer = as_list_section('Возможные варианты:', *map(timetable.make_date_string_underline, days))
         await state.update_data(days={day.strftime('%d.%m'): day for day in days}
                                 | {str(i + 1): day for i, day in enumerate(days)})
         await message.answer(**answer.as_kwargs(), reply_markup=keyboard.as_markup())
@@ -115,9 +115,11 @@ class SelectSingleScene(Scene, state='selectSingle'):
             date_body: list[Text] = []
             for slot in day_slots:
                 assert slot.id is not None
-                date_body.append(Text(len(slot_mapping), ':', timetable.make_slot_string(slot, bold=False)))
+                date_body.append(as_key_value(
+                    Underline(len(slot_mapping)),
+                    timetable.make_slot_string(slot, bold=False)))
                 slot_mapping.append(slot.id)
-            body.append(as_list_section(date_header, *date_body))
+            body.append(as_marked_section(date_header, *date_body))
         await state.update_data(slot_mapping=slot_mapping)
         await message.answer(**as_list_section(header, *body).as_kwargs(), reply_markup=ReplyKeyboardRemove())
 
