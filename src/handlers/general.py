@@ -31,13 +31,16 @@ def build_general_keyboard():
 async def handle_start(message: Message, state: FSMContext):
     _LOGGER.debug('User %s started interacting with the bot', format_user(message.from_user))
     await state.clear()
-    await message.answer(textwrap.dedent('''
+    sent_message = await message.answer(textwrap.dedent('''
     Это бот, предоставляющий информацию о мероприятиях. Команды:
     /schedule - список всех мероприятий
     /configure - настройка персональной программы
     /personal - ваша персональная программа
     /settings - настройки уведомлений
+    /start - показать это сообщение, сбросить состояние и клавиатуру
         '''), reply_markup=build_general_keyboard())
+    await sent_message.chat.unpin_all_messages()
+    await sent_message.pin()
 
 
 async def handle_schedule(message: Message, speech_repository: SpeechRepository):

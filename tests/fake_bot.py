@@ -7,10 +7,18 @@ from typing import Any, Self
 import pytest
 from aiogram import Bot, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.methods import AnswerCallbackQuery, SendDocument, SendMessage, TelegramMethod
+from aiogram.methods import (
+    AnswerCallbackQuery,
+    PinChatMessage,
+    SendDocument,
+    SendMessage,
+    TelegramMethod,
+    UnpinAllChatMessages,
+)
 from aiogram.types import (
     CallbackQuery,
     Chat,
+    ChatIdUnion,
     Document,
     FSInputFile,
     InlineKeyboardMarkup,
@@ -56,6 +64,7 @@ class BotFake:
         self._data['state'] = self._state
         async def nop(*_: Any): pass  # Do nothing by default
         self._data['schedule_update_callback'] = nop
+        self.pinned: dict[ChatIdUnion, list[Message]] = {}
 
     @property
     def bot(self):
@@ -69,7 +78,7 @@ class BotFake:
             self._id_counter += 1
             keyboard = method.reply_markup if isinstance(method.reply_markup, InlineKeyboardMarkup) else None
             message = Message(message_id=message_id, date=datetime.datetime.now(),  # noqa: DTZ005
-                              chat=Chat(id=chat_id, type='private'), text=method.text,
+                              chat=Chat(id=chat_id, type='private').as_(self.bot), text=method.text,
                               reply_markup=keyboard).as_(self.bot)
             self.messages.append(message)
             self.sent_messages.append(method.text)
@@ -101,6 +110,18 @@ class BotFake:
             self.messages.append(message)
             self.sent_messages.append(method.caption or '')
             return message
+        if isinstance(method, PinChatMessage):
+            chat_id = method.chat_id
+            message = next(msg for msg in self.messages if msg.message_id == method.message_id)
+            if chat_id not in self.pinned:
+                self.pinned[chat_id] = []
+            self.pinned[chat_id].append(message)
+            return True
+        if isinstance(method, UnpinAllChatMessages):
+            chat_id = method.chat_id
+            if chat_id in self.pinned:
+                del self.pinned[chat_id]
+            return True
         pytest.fail(f'Unsupported method: {type(method)}')
 
     async def download(self, file_id: str):  # NOSONAR

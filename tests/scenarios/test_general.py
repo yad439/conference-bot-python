@@ -53,6 +53,13 @@ async def test_start(bot: BotFake):
     assert '/configure' in text
     assert '/schedule' in text
     assert '/personal' in text
+    assert len(bot.pinned) == 1
+    chat_id = next(iter(bot.pinned))
+    assert len(bot.pinned[chat_id]) == 1
+
+    await bot.message('/start')
+
+    assert len(bot.pinned[chat_id]) == 1
 
 
 async def _init_general(bot: BotFake):
