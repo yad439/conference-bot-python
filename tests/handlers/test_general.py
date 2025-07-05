@@ -83,13 +83,13 @@ async def test_schedule_today(speech_repository: SpeechRepository, query: str):
     await general.handle_schedule_selection(callback, speech_repository, file_manager)
 
     callback.answer.assert_awaited_once()
-    callback.message.answer.assert_awaited_once()
-    args = callback.message.answer.await_args.kwargs
+    callback.message.answer.assert_awaited()
+    args = '\n'.join(arg.kwargs['text'] for arg in callback.message.answer.await_args_list)
     for substring in ('About something', 'About something else', 'Alternative point', 'Dr. John Doe', 'Jane Doe',
                       'Mr. Alternative', 'A', 'B', '01.06', '9:00', '10:00', '11:00'):
-        assert substring in args['text']
+        assert substring in args
     for substring in 'New day talk', 'Alternative day 2', 'New speaker', '02.06':
-        assert substring not in args['text']
+        assert substring not in args
 
 
 @pytest.mark.asyncio
@@ -102,14 +102,14 @@ async def test_schedule_tomorrow(speech_repository: SpeechRepository, query: str
     await general.handle_schedule_selection(callback, speech_repository, file_manager)
 
     callback.answer.assert_awaited_once()
-    callback.message.answer.assert_awaited_once()
-    args = callback.message.answer.await_args.kwargs
+    callback.message.answer.assert_awaited()
+    args = '\n'.join(arg.kwargs['text'] for arg in callback.message.answer.await_args_list)
     for substring in ('New day talk', 'Alternative day 2', 'Mr. Alternative', 'New speaker', 'A', 'B', '02.06', '9:00',
                       '10:00'):
-        assert substring in args['text']
+        assert substring in args
     for substring in ('About something', 'About something else', 'Alternative point', 'Dr. John Doe', 'Jane Doe',
                       '01.06', '11:00'):
-        assert substring not in args['text']
+        assert substring not in args
 
 
 @pytest.mark.asyncio

@@ -97,8 +97,8 @@ async def test_general_today(bot: BotFake, query: str):
     await bot.query(message, query)
 
     assert not bot.pending_queries
-    assert len(bot.sent_messages) == 2
-    text = bot.sent_messages[1]
+    assert len(bot.sent_messages) >= 2
+    text = '\n'.join(bot.sent_messages[1:])
     for substring in ('About something', 'About something else', 'Alternative point', 'Dr. John Doe', 'Jane Doe',
                       'Mr. Alternative', 'A', 'B', '01.06', '9:00', '10:00', '11:00'):
         assert substring in text
@@ -115,8 +115,8 @@ async def test_general_tomorrow(bot: BotFake, query: str):
     await bot.query(message, query)
 
     assert not bot.pending_queries
-    assert len(bot.sent_messages) == 2
-    text = bot.sent_messages[1]
+    assert len(bot.sent_messages) >= 2
+    text = '\n'.join(bot.sent_messages[1:])
     for substring in ('New day talk', 'Alternative day 2', 'Mr. Alternative', 'New speaker', 'A', 'B', '02.06', '9:00',
                       '10:00'):
         assert substring in text

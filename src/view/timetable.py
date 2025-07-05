@@ -3,11 +3,10 @@ import typing
 from collections.abc import Iterable
 from enum import Enum, auto
 
-from aiogram.utils.formatting import Bold, Italic, Text, Underline, as_key_value, as_list, as_marked_section
+from aiogram.utils.formatting import Bold, Italic, Text, Underline, as_key_value, as_marked_section
 from babel import dates
 
 from dto import SpeechDto, TimeSlotDto
-from utility import as_list_section
 
 
 class EntryFormat(Enum):
@@ -52,21 +51,14 @@ def make_slot_string(slot: TimeSlotDto, with_day: bool = False, bold: bool = Tru
 def render_timetable(
         table: Iterable[tuple[datetime.date, Iterable[tuple['str', Iterable[SpeechDto]]]]],
         with_day_counter: bool = True):
-    output: list[Text] = []
     for date, locations in table:
         if with_day_counter:
-            header = Text('📆', dates.format_date(date, 'E, dd.MM:', locale='ru').capitalize())
+            yield Text('📆', dates.format_date(date, 'E, dd.MM:', locale='ru').capitalize())
         else:
-            header = Text('📆', f'{date:%d.%m}:')
-        body: list[Text | str] = []
+            yield Text('📆', f'{date:%d.%m}:')
         for location, speeches in locations:
-            body.extend((
-                as_marked_section(Text('🏫', location),
-                                  *(make_entry_string(speech) for speech in speeches)),
-                ''
-            ))
-        output.append(as_list_section(header, *body))
-    return as_list(*output)
+            yield as_marked_section(Text('🏫', location),
+                                    *(make_entry_string(speech) for speech in speeches))
 
 
 def render_personal(table: Iterable[tuple[datetime.date, Iterable[SpeechDto]]]):

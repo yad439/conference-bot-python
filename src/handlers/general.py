@@ -87,7 +87,8 @@ async def handle_schedule_selection(callback: CallbackQuery, speech_repository: 
     else:
         days = ((day, itertools.groupby(locations, lambda x: x.location))
                 for day, locations in itertools.groupby(speeches, lambda x: x.time_slot.date))
-        await message.answer(**timetable.render_timetable(days, False).as_kwargs())
+        for text in timetable.render_timetable(days, False):
+            await message.answer(**text.as_kwargs())
 
 
 async def _send_full_schedule(message: Message, file_manager: FileManager):
