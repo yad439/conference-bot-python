@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import itertools
 import logging
@@ -37,13 +38,17 @@ async def notify_first(bot: Bot, selection_repository: SelectionRepository,
                        time_slot_id: int, time_to_start: int):
     selections = await selection_repository.get_users_that_selected(time_slot_id)
     logging.getLogger(__name__).info('Notifying %d users about first speech', len(selections))
-    for selection in selections:
-        await bot.send_message(selection.attendee, notifications.render_starting(selection.speech, time_to_start))
+    for batch in itertools.batched(selections, 24, strict=False):
+        for selection in batch:
+            await bot.send_message(selection.attendee, notifications.render_starting(selection.speech, time_to_start))
+        await asyncio.sleep(1)
 
 
 async def notify_change_location(bot: Bot, selection_repository: SelectionRepository,
                                  time_slot_id: int, previous_slot_id: int, time_to_start: int):
     selections = await selection_repository.get_changing_users(time_slot_id, previous_slot_id)
     logging.getLogger(__name__).info('Notifying %d users about location change', len(selections))
-    for selection in selections:
-        await bot.send_message(selection.attendee, notifications.render_starting(selection.speech, time_to_start))
+    for batch in itertools.batched(selections, 24, strict=False):
+        for selection in batch:
+            await bot.send_message(selection.attendee, notifications.render_starting(selection.speech, time_to_start))
+        await asyncio.sleep(1)
