@@ -82,7 +82,7 @@ async def setup_and_run_bot(token: str, logger: logging.Logger):
     handlers.personal_edit.init(dispatcher)
     handlers.middleware.init_middleware(dispatcher)
 
-    scheduler = AsyncIOScheduler()
+    scheduler = AsyncIOScheduler(job_defaults={'misfire_grace_time': 60})
 
     def scheduler_callback():
         return event_start.configure_events(scheduler, speech_repository, selection_repository,
