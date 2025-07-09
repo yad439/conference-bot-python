@@ -16,7 +16,7 @@ async def test_reroute_to_personal():
     router = Router()
     scenes = SimpleNamespace()
 
-    async def mock_handler(message: Message):  # noqa: RUF029
+    async def mock_handler(message: Message):  # noqa: RUF029 NOSONAR
         assert message.chat.type == 'private'
         assert message.chat.id == 1
 
