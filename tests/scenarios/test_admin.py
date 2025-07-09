@@ -167,3 +167,29 @@ async def test_update_schedule_wrong_format(bot: BotFake, wrong_header: bool):
 
     assert len(bot.sent_messages) == 1
     assert 'Ошибка' in bot.sent_messages[0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ('command', 'expected_text', 'message_count'),
+    [
+        ('/notify', 'Неверный формат команды', 1),
+        ('/notify 123', 'Неверный формат команды', 1),
+        ('/notify abc Hello', 'Ошибка при отправке сообщения', 1),
+        ('/notify 123,abc Hello', 'Ошибка при отправке сообщения', 2),
+    ]
+)
+async def test_manual_notify_handler_invalid(bot: BotFake, command: str, expected_text: str, message_count: int):
+    await bot.message(command, user_id=42)
+
+    assert len(bot.sent_messages) == message_count
+    assert expected_text in bot.sent_messages[-1]
+
+
+@pytest.mark.asyncio
+async def test_manual_notify_handler_success(bot: BotFake):
+    await bot.message('/notify 1001,1002,1003 Hello world!', user_id=42)
+
+    assert len(bot.sent_messages) == 4  # noqa: PLR2004
+    assert all(msg == 'Hello world!' for msg in bot.sent_messages[:-1])
+    assert {msg.chat.id for msg in bot.messages} == {1001, 1002, 1003, 42}

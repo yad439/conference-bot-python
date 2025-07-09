@@ -22,6 +22,7 @@ def get_router():
     router.message.register(set_admin_handler, Command('admin'))
     router.message.register(set_admin_handler, Command('unadmin'))
     router.message.register(modify_schedule_handler, Command('edit_schedule'))
+    router.message.register(manual_notify_handler, Command('notify'))
     router.message.middleware(check_rights_middleware)
     return router
 
@@ -69,6 +70,38 @@ async def set_admin_handler(message: Message, user_repository: UserRepository):
         else:
             await message.answer(f'Пользователь {identifier} не найден')
             logger.info('User %s not found for admin privileges', identifier)
+
+
+async def manual_notify_handler(message: Message):
+    bot = message.bot
+    assert bot is not None
+    text = message.text
+    assert text
+    logger = logging.getLogger(__name__)
+    first_space = text.find(' ')
+    if first_space < 0:
+        logger.warning('Wrong command %s', text)
+        await message.answer('Неверный формат команды. Используйте /notify <IDs> <message>')
+        return
+    second_space = text.find(' ', first_space + 1)
+    if second_space < 0:
+        logger.warning('Wrong command %s', text)
+        await message.answer('Неверный формат команды. Используйте /notify <IDs> <message>')
+        return
+    user_ids = text[first_space + 1:second_space]
+    ids = map(int, user_ids.split(','))
+    message_text = text[second_space + 1:]
+    logger.info('Sending message to %s: %s', message_text, user_ids)
+    i = 0
+    try:
+        for user_id in ids:
+            await bot.send_message(user_id, message_text)
+            i += 1
+    except ValueError:
+        logger.exception('Failed to send message to user')
+        await message.answer(f'Ошибка при отправке сообщения. Проверьте формат ID. Успел отправить {i} сообщений')
+        return
+    await message.answer(f'Сообщение отправлено {i} пользователям')
 
 
 async def modify_schedule_handler(message: Message, speech_repository: SpeechRepository,

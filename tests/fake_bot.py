@@ -124,6 +124,9 @@ class BotFake:
             return True
         pytest.fail(f'Unsupported method: {type(method)}')
 
+    def send_message(self, chat_id: ChatIdUnion, text: str):
+        return self(SendMessage(chat_id=chat_id, text=text))
+
     async def download(self, file_id: str):  # NOSONAR
         return BytesIO(self._files[file_id])
 
