@@ -24,7 +24,7 @@ class FileManager:
 def format_user(user: User | None):
     if user is None:
         return 'Unknown'
-    return f'{user.first_name} {user.last_name} ({user.id})'
+    return f'{user.first_name} {user.last_name} <{user.username}> ({user.id})'
 
 
 def as_list_section(header: Text | str, *body: Text | str):
