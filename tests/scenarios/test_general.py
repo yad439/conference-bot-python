@@ -10,11 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 import data.mock_data
 import data.setup
-from data.repository import SpeechRepository, UserRepository
+from data.repository import FileRepository, SpeechRepository, UserRepository
 from data.tables import Settings
 from handlers import general
 from tests.fake_bot import BotFake
-from utility import FileManager
 
 
 @pytest_asyncio.fixture  # type: ignore
@@ -37,9 +36,14 @@ def user_repository(session_maker: async_sessionmaker[AsyncSession]):
 
 
 @pytest.fixture
-def bot(speech_repository: SpeechRepository, user_repository: UserRepository):
-    file_manager = FileManager({'schedule': Path('schedule.txt')})
-    bot = BotFake(speech_repository=speech_repository, user_repository=user_repository, file_manager=file_manager)
+def file_repository(session_maker: async_sessionmaker[AsyncSession]):
+    return FileRepository(session_maker)
+
+
+@pytest_asyncio.fixture
+async def bot(speech_repository: SpeechRepository, user_repository: UserRepository, file_repository: FileRepository):
+    await file_repository.add_files([('schedule', Path('schedule.txt'))])
+    bot = BotFake(speech_repository=speech_repository, user_repository=user_repository, file_repository=file_repository)
     bot.router.include_router(general.get_router())
     return bot
 

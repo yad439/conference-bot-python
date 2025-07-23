@@ -1,24 +1,8 @@
-from collections.abc import Iterable, Mapping
-from pathlib import Path
+from collections.abc import Iterable
 from typing import Any
 
 from aiogram.types import User
 from aiogram.utils.formatting import Text, as_list, as_section
-
-
-class FileManager:
-    def __init__(self, file_paths: Mapping[str, Path]):
-        self._file_paths = file_paths
-        self._uploaded_files: dict[str, str] = {}
-
-    def get_file_id(self, name: str):
-        return self._uploaded_files.get(name)
-
-    def get_file_path(self, name: str) -> Path:
-        return self._file_paths[name]
-
-    def set_file_id(self, name: str, file_id: str):
-        self._uploaded_files[name] = file_id
 
 
 def format_user(user: User | None):

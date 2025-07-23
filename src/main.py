@@ -24,10 +24,9 @@ import handlers.middleware
 import handlers.personal_edit
 import handlers.personal_view
 import handlers.settings
-from data.repository import SelectionRepository, SpeechRepository, UserRepository
+from data.repository import FileRepository, SelectionRepository, SpeechRepository, UserRepository
 from dto import TimeSlotDto
 from notifications import changed, event_start
-from utility import FileManager
 
 
 def configure_async_logging():
@@ -69,12 +68,13 @@ async def setup_and_run_bot(token: str, logger: logging.Logger):
     speech_repository = SpeechRepository(session_maker)
     selection_repository = SelectionRepository(session_maker)
     user_repository = UserRepository(session_maker)
+    file_repository = FileRepository(session_maker)
     general_schedule_path = Path(os.getenv('GENERAL_SCHEDULE_PATH', 'files/general.pdf'))
-    file_manager = FileManager({handlers.general.SCHEDULE_FILE_KEY: general_schedule_path})
+    await file_repository.add_files(((handlers.general.SCHEDULE_FILE_KEY, general_schedule_path),))
 
     bot = Bot(token)
     dispatcher = Dispatcher(speech_repository=speech_repository, selection_repository=selection_repository,
-                            user_repository=user_repository, file_manager=file_manager)
+                            user_repository=user_repository, file_repository=file_repository)
     dispatcher.include_router(handlers.general.get_router())
     dispatcher.include_router(handlers.personal_view.get_router())
     dispatcher.include_router(handlers.settings.get_router())

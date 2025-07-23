@@ -1,26 +1,37 @@
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 import pytest_asyncio
 from aiogram.types import Chat, FSInputFile, InaccessibleMessage
 from freezegun import freeze_time
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 import data.mock_data
 import data.setup
-from data.repository import SpeechRepository
+from data.repository import FileRepository, SpeechRepository
 from handlers import general
-from utility import FileManager
 
 
 @pytest_asyncio.fixture  # type: ignore
-async def speech_repository():
+async def session_maker():
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     session_maker = async_sessionmaker(engine)
     await data.setup.create_tables(engine)
     await data.mock_data.fill_tables(session_maker)
+    return session_maker
+
+
+@pytest.fixture
+def speech_repository(session_maker: async_sessionmaker[AsyncSession]):
     return SpeechRepository(session_maker)
+
+
+@pytest.fixture
+def file_repository(session_maker: async_sessionmaker[AsyncSession]):
+    return FileRepository(session_maker)
 
 
 @pytest.mark.asyncio
@@ -45,11 +56,15 @@ async def test_handle_personal_view(speech_repository: SpeechRepository):
 
 
 @pytest.mark.asyncio
-async def test_schedule_all_first(speech_repository: SpeechRepository):
+async def test_schedule_all_first(speech_repository: SpeechRepository, file_repository: FileRepository):
     callback = AsyncMock(data='show_general_all')
-    file_manager = FileManager({'schedule': Path('schedule.txt')})
 
-    await general.handle_schedule_selection(callback, speech_repository, file_manager)
+    async def fake_answer_document(_: Any):
+        return SimpleNamespace(document=SimpleNamespace(file_id='12345'))
+    callback.message.answer_document.side_effect = fake_answer_document
+    await file_repository.add_files([('schedule', Path('schedule.txt'))])
+
+    await general.handle_schedule_selection(callback, speech_repository, file_repository)
 
     callback.answer.assert_awaited_once()
     callback.message.answer_document.assert_awaited_once()
@@ -59,12 +74,12 @@ async def test_schedule_all_first(speech_repository: SpeechRepository):
 
 
 @pytest.mark.asyncio
-async def test_schedule_all_repeat(speech_repository: SpeechRepository):
+async def test_schedule_all_repeat(speech_repository: SpeechRepository, file_repository: FileRepository):
     callback = AsyncMock(data='show_general_all')
-    file_manager = FileManager({'schedule': Path('schedule.txt')})
-    file_manager.set_file_id('schedule', '1234567890')
+    await file_repository.add_files([('schedule', Path('schedule.txt'))])
+    await file_repository.set_telegram_id('schedule', '1234567890')
 
-    await general.handle_schedule_selection(callback, speech_repository, file_manager)
+    await general.handle_schedule_selection(callback, speech_repository, file_repository)
 
     callback.answer.assert_awaited_once()
     callback.message.answer_document.assert_awaited_once()
@@ -76,11 +91,10 @@ async def test_schedule_all_repeat(speech_repository: SpeechRepository):
 @pytest.mark.asyncio
 @freeze_time('2025-06-01')
 @pytest.mark.parametrize('query', ['show_general_today', 'show_general_date#2025-06-01:+0700'])
-async def test_schedule_today(speech_repository: SpeechRepository, query: str):
+async def test_schedule_today(speech_repository: SpeechRepository, file_repository: FileRepository, query: str):
     callback = AsyncMock(data=query)
-    file_manager = FileManager({})
 
-    await general.handle_schedule_selection(callback, speech_repository, file_manager)
+    await general.handle_schedule_selection(callback, speech_repository, file_repository)
 
     callback.answer.assert_awaited_once()
     callback.message.answer.assert_awaited()
@@ -95,11 +109,10 @@ async def test_schedule_today(speech_repository: SpeechRepository, query: str):
 @pytest.mark.asyncio
 @freeze_time('2025-06-01')
 @pytest.mark.parametrize('query', ['show_general_tomorrow', 'show_general_date#2025-06-02:+0700'])
-async def test_schedule_tomorrow(speech_repository: SpeechRepository, query: str):
+async def test_schedule_tomorrow(speech_repository: SpeechRepository, file_repository: FileRepository, query: str):
     callback = AsyncMock(data=query)
-    file_manager = FileManager({})
 
-    await general.handle_schedule_selection(callback, speech_repository, file_manager)
+    await general.handle_schedule_selection(callback, speech_repository, file_repository)
 
     callback.answer.assert_awaited_once()
     callback.message.answer.assert_awaited()
@@ -115,11 +128,10 @@ async def test_schedule_tomorrow(speech_repository: SpeechRepository, query: str
 @pytest.mark.asyncio
 @freeze_time('2025-05-01')
 @pytest.mark.parametrize('query', ['show_general_today', 'show_general_tomorrow', 'show_general_date#2025-05-01:+0700'])
-async def test_schedule_empty(speech_repository: SpeechRepository, query: str):
+async def test_schedule_empty(speech_repository: SpeechRepository, file_repository: FileRepository, query: str):
     callback = AsyncMock(data=query)
-    file_manager = FileManager({})
 
-    await general.handle_schedule_selection(callback, speech_repository, file_manager)
+    await general.handle_schedule_selection(callback, speech_repository, file_repository)
 
     callback.answer.assert_awaited_once()
     callback.message.answer.assert_awaited_once()
@@ -128,13 +140,12 @@ async def test_schedule_empty(speech_repository: SpeechRepository, query: str):
 
 
 @pytest.mark.asyncio
-async def test_handle_personal_view_inaccessible(speech_repository: SpeechRepository):
+async def test_handle_personal_view_inaccessible(speech_repository: SpeechRepository, file_repository: FileRepository):
     callback = AsyncMock(data='show_personal_all')
     callback.message = InaccessibleMessage(
         chat=Chat(id=1, type=''), message_id=21)
-    file_manager = FileManager({})
 
-    await general.handle_schedule_selection(callback, speech_repository, file_manager)
+    await general.handle_schedule_selection(callback, speech_repository, file_repository)
 
     callback.answer.assert_awaited_once()
     args = callback.answer.await_args.args
@@ -142,9 +153,10 @@ async def test_handle_personal_view_inaccessible(speech_repository: SpeechReposi
 
 
 @pytest.mark.asyncio
-async def test_handle_personal_view_wrong(speech_repository: SpeechRepository, caplog: pytest.LogCaptureFixture):
+async def test_handle_personal_view_wrong(speech_repository: SpeechRepository,
+                                          file_repository: FileRepository,
+                                          caplog: pytest.LogCaptureFixture):
     callback = AsyncMock(data='asdf')
-    file_manager = FileManager({})
-    await general.handle_schedule_selection(callback, speech_repository, file_manager)
+    await general.handle_schedule_selection(callback, speech_repository, file_repository)
     assert 'Received unknown general command asdf' in caplog.text
     callback.answer.assert_awaited_once_with('Что-то пошло не так')

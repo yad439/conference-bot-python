@@ -2,6 +2,8 @@ import datetime
 import itertools
 import logging
 import textwrap
+import typing
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from aiogram import F, Router
@@ -10,8 +12,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, InaccessibleMessage, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
-from data.repository import SpeechRepository, UserRepository
-from utility import FileManager, format_user
+from data.repository import FileRepository, SpeechRepository, UserRepository
+from utility import format_user
 from view import timetable
 
 SCHEDULE_FILE_KEY = 'schedule'
@@ -53,7 +55,7 @@ async def handle_schedule(message: Message, speech_repository: SpeechRepository)
 
 
 async def handle_schedule_selection(callback: CallbackQuery, speech_repository: SpeechRepository,
-                                    file_manager: FileManager):
+                                    file_repository: FileRepository):
     message = callback.message
     if message is None or isinstance(message, InaccessibleMessage):
         await callback.answer('Сообщение устарело')
@@ -65,7 +67,7 @@ async def handle_schedule_selection(callback: CallbackQuery, speech_repository: 
     _LOGGER.debug('User %s requested general schedule with query %s', format_user(callback.from_user), query)
     match command[0]:
         case 'show_general_all':
-            await _send_full_schedule(message, file_manager)
+            await _send_full_schedule(message, file_repository)
             await callback.answer()
             return
         case 'show_general_today':
@@ -94,18 +96,19 @@ async def handle_schedule_selection(callback: CallbackQuery, speech_repository: 
             await message.answer(**text.as_kwargs())
 
 
-async def _send_full_schedule(message: Message, file_manager: FileManager):
-    file_id = file_manager.get_file_id(SCHEDULE_FILE_KEY)
-    if file_id is None:
-        file = FSInputFile(file_manager.get_file_path(SCHEDULE_FILE_KEY))
+async def _send_full_schedule(message: Message, file_repository: FileRepository):
+    file_path = await file_repository.get_file(SCHEDULE_FILE_KEY)
+    if isinstance(file_path, Path):
+        file = FSInputFile(file_path)
         _LOGGER.info('Uploading file %s for schedule', file.path)
         result = await message.answer_document(file)
         document = result.document
         assert document is not None
-        file_manager.set_file_id(SCHEDULE_FILE_KEY, document.file_id)
+        await file_repository.set_telegram_id(SCHEDULE_FILE_KEY, document.file_id)
     else:
-        _LOGGER.debug('Using cached file ID %s for schedule', file_id)
-        await message.answer_document(file_id)
+        typing.assert_type(file_path, str)
+        _LOGGER.debug('Using cached file ID %s for schedule', file_path)
+        await message.answer_document(file_path)
 
 
 async def handle_register(message: Message, user_repository: UserRepository):

@@ -51,3 +51,10 @@ class Settings(Base):
     username: Mapped[str | None]
     notifications_enabled: Mapped[bool] = mapped_column(default=True)
     admin: Mapped[bool] = mapped_column(default=False)
+
+
+class FileInfo(Base):
+    __tablename__ = 'files'
+    id: Mapped[str] = mapped_column(primary_key=True)  # noqa: A003
+    local_path: Mapped[str] = mapped_column(nullable=False)
+    telegram_id: Mapped[str | None] = mapped_column()

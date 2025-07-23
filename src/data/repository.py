@@ -1,6 +1,7 @@
 import datetime
 import logging
 from collections.abc import Collection, Iterable
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -11,7 +12,7 @@ from sqlalchemy.orm import aliased, contains_eager, selectinload
 
 from dto import SelectionDto, SpeechDto, TimeSlotDto
 
-from .tables import Selection, Settings, Speech, TimeSlot
+from .tables import FileInfo, Selection, Settings, Speech, TimeSlot
 
 
 class SpeechRepository:
@@ -244,6 +245,37 @@ class SelectionRepository:
         async with self._factory() as session:
             result = await session.execute(query)
             return result.tuples().all()
+
+
+class FileRepository:
+    def __init__(self, factory: async_sessionmaker[AsyncSession]):
+        self._factory = factory
+        self._logger = logging.getLogger(__name__)
+
+    async def add_files(self, files: Iterable[tuple[str, Path]]):
+        self._logger.info('Adding files')
+        async with self._factory() as session, session.begin():
+            for file_id, local_path in files:
+                file_info = FileInfo(id=file_id, local_path=str(local_path))
+                session.add(file_info)
+
+    async def get_file(self, file_id: str) -> str | Path:
+        statement = select(FileInfo).where(FileInfo.id == file_id)
+        async with self._factory() as session:
+            result = await session.scalar(statement)
+            if result is None:
+                msg = f'File with id {file_id} not found'
+                raise ValueError(msg)
+            return result.telegram_id if result.telegram_id is not None else Path(result.local_path)
+
+    async def set_telegram_id(self, file_id: str, telegram_id: str):
+        self._logger.info('Setting telegram id for file %s to %s', file_id, telegram_id)
+        update_query = update(FileInfo).where(FileInfo.id == file_id).values(telegram_id=telegram_id)
+        async with self._factory() as session, session.begin():
+            updated = await session.execute(update_query)
+            if not updated.rowcount:
+                msg = f'File with id {file_id} not found'
+                raise ValueError(msg)
 
 
 def _update_speeches_slot_timezone(speeches: Iterable[Speech], timezone: datetime.tzinfo):
